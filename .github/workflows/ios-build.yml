@@ -27,8 +27,34 @@ jobs:
         # that's not what happened here.
         run: chmod +x node_modules/.bin/*
 
+      - name: Add iOS platform if missing
+        # "cap sync" only syncs a platform folder that already exists — it
+        # doesn't create one. If ios/ was never committed to the repo (or got
+        # excluded by .gitignore somewhere along the way), this generates it
+        # fresh so the build can't fail with "App.xcworkspace does not exist."
+        run: |
+          if [ ! -d "ios" ]; then
+            echo "ios/ not found — running cap add ios"
+            npx cap add ios
+          else
+            echo "ios/ already present — skipping cap add"
+          fi
+
       - name: Sync Capacitor
         run: npx cap sync ios
+
+      - name: Install CocoaPods dependencies
+        # This is what actually generates App.xcworkspace — cap sync is
+        # supposed to trigger this on its own, but isn't reliably doing so on
+        # this runner image, so it's run explicitly here instead. Safe to run
+        # even if cap sync already did this correctly.
+        run: |
+          cd ios/App
+          pod install --repo-update
+          cd ../..
+
+      - name: Verify workspace exists
+        run: ls -la ios/App/
 
       - name: Build iOS (unsigned archive)
         run: |
