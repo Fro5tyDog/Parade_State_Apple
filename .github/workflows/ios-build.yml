@@ -43,23 +43,23 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Install CocoaPods dependencies
-        # This is what actually generates App.xcworkspace — cap sync is
-        # supposed to trigger this on its own, but isn't reliably doing so on
-        # this runner image, so it's run explicitly here instead. Safe to run
-        # even if cap sync already did this correctly.
+      - name: Resolve Swift Package dependencies
+        # This project uses Swift Package Manager (see the CapApp-SPM folder),
+        # not CocoaPods — there's no Podfile and no .xcworkspace to generate.
+        # SPM packages resolve directly against the .xcodeproj, so this step
+        # replaces what would otherwise be "pod install" for a CocoaPods setup.
         run: |
-          cd ios/App
-          pod install --repo-update
-          cd ../..
+          xcodebuild -resolvePackageDependencies \
+            -project ios/App/App.xcodeproj \
+            -scheme App
 
-      - name: Verify workspace exists
+      - name: Verify project exists
         run: ls -la ios/App/
 
       - name: Build iOS (unsigned archive)
         run: |
           xcodebuild \
-            -workspace ios/App/App.xcworkspace \
+            -project ios/App/App.xcodeproj \
             -scheme App \
             -sdk iphoneos \
             -configuration Release \
