@@ -15,18 +15,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
-
-      - name: Build web app
-        run: npm run build
+        run: npm install
 
       - name: Sync Capacitor
         run: npx cap sync ios
 
-      - name: Build iOS
+      - name: Build iOS (unsigned archive)
         run: |
           xcodebuild \
             -workspace ios/App/App.xcworkspace \
@@ -35,4 +31,21 @@ jobs:
             -configuration Release \
             -archivePath $RUNNER_TEMP/App.xcarchive \
             archive \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            -allowProvisioningUpdates NO
+
+      - name: Package unsigned .ipa
+        run: |
+          mkdir -p "$RUNNER_TEMP/Payload"
+          cp -r "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" "$RUNNER_TEMP/Payload/"
+          cd "$RUNNER_TEMP"
+          zip -r App.ipa Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: App-unsigned-ipa
+          path: ${{ runner.temp }}/App.ipa
