@@ -19,6 +19,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Fix executable permissions
+        # Guards against node_modules binaries losing their executable bit —
+        # most commonly seen if node_modules ever got committed to git from a
+        # Windows machine, since Windows filesystems don't track the Unix
+        # executable bit the way macOS/Linux do. Harmless to run even if
+        # that's not what happened here.
+        run: chmod +x node_modules/.bin/*
+
       - name: Sync Capacitor
         run: npx cap sync ios
 
