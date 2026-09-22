@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<!-- app version 1.0.2 — squared filter buttons + mobile date-picker flash fix + OTA diagnostic logging -->
+<!-- app version 1.1.3 — export downloads now try the native share sheet first (navigator.share), falling back to the old download-link trick with honest (non-false-positive) messaging -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0a0e13">
 <title>Parade State</title>
 <link rel="manifest" href="manifest.json">
@@ -32,9 +32,9 @@
     overscroll-behavior-y: contain;
   }
   input, select, textarea { font-size: 16px; font-family: inherit; }
-  #app { max-width: 480px; margin: 0 auto; padding: 10px 12px 70px; }
+  #app { max-width: 480px; margin: 0 auto; padding: 10px 12px calc(70px + env(safe-area-inset-bottom, 0px)); }
 
-  .maintabs { display: flex; gap: 6px; margin-bottom: 12px; position: sticky; top: 0; background: var(--bg); padding-top: 4px; z-index: 5; }
+  .maintabs { display: flex; gap: 6px; margin-bottom: 12px; position: sticky; top: 0; background: var(--bg); padding-top: calc(4px + env(safe-area-inset-top, 0px)); z-index: 5; }
   .maintab {
     flex: 1; background: var(--panel); border: 1px solid var(--border); color: var(--text-dim);
     border-radius: 8px; padding: 9px 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; cursor: pointer;
@@ -95,22 +95,25 @@
   .emprow.onduty { border-left-color: var(--onduty); }
   .emprow.leave { border-left-color: var(--leave); }
   .emprow.mc { border-left-color: var(--mc); }
-  .emprow.armed { background: #1a1210; }
   .emprow.excluded { opacity: 0.45; border-left-color: var(--text-faint); }
   .emprow.readonly { cursor: default; }
   .emprow .name { font-size: 13.5px; }
   .emprow .rank { color: var(--text-dim); font-size: 11px; margin-right: 6px; }
   .emprow .badge { font-size: 8.5px; background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim); border-radius: 4px; padding: 1px 5px; margin-left: 4px; letter-spacing: 0.04em; }
+  .badge { display: inline-block; font-size: 9.5px; font-weight: 700; border-radius: 4px; padding: 2px 6px; letter-spacing: 0.04em; border: 1px solid transparent; }
+  .badge-cds { background: rgba(91,156,246,0.15); border-color: rgba(91,156,246,0.4); color: #5b9cf6; }
+  .badge-stayin { background: rgba(186,140,242,0.15); border-color: rgba(186,140,242,0.4); color: #ba8cf2; }
+  .badge-cdo { background: rgba(240,180,41,0.15); border-color: rgba(240,180,41,0.4); color: #f0b429; }
+  .badge-ord { background: rgba(138,143,152,0.15); border-color: rgba(138,143,152,0.4); color: #8a8f98; }
   .emprow .substatus { font-size: 11px; color: var(--text-dim); text-align: right; }
-  .emprow.out .substatus, .emprow.armed .substatus { color: var(--out); }
+  .emprow.out .substatus { color: var(--out); }
   .emprow.onduty .substatus { color: var(--onduty); }
   .emprow.leave .substatus { color: var(--leave); }
   .emprow.mc .substatus { color: var(--mc); }
-  .emprow.pressing::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.06); transform: scaleX(0); transform-origin: left; animation: pressfill 480ms linear forwards; }
-  @keyframes pressfill { to { transform: scaleX(1); } }
+  .emprow.pressing { background: var(--panel-2); }
 
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: flex-end; justify-content: center; z-index: 50; }
-  .modal-sheet { background: var(--panel); border: 1px solid var(--border); border-radius: 14px 14px 0 0; padding: 18px 16px 22px; width: 100%; max-width: 480px; max-height: 86vh; overflow-y: auto; }
+  .modal-sheet { background: var(--panel); border: 1px solid var(--border); border-radius: 14px 14px 0 0; padding: 18px 16px calc(22px + env(safe-area-inset-bottom, 0px)); width: 100%; max-width: 480px; max-height: 86vh; overflow-y: auto; }
   .modal-sheet h3 { margin: 0 0 4px; font-size: 15px; }
   .modal-sheet .sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
   .reason-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 6px; }
@@ -146,7 +149,7 @@
   .check-label { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-dim); }
   .back-link { background: transparent; border: none; color: var(--text-dim); font-size: 12px; padding: 6px 0 14px; cursor: pointer; display: block; }
 
-  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--in); color: #06251a; font-size: 12.5px; font-weight: 600; padding: 10px 18px; border-radius: 20px; opacity: 0; transition: all 0.25s ease; z-index: 60; white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis; }
+  .toast { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%) translateY(20px); background: var(--in); color: #06251a; font-size: 12.5px; font-weight: 600; padding: 10px 18px; border-radius: 20px; opacity: 0; transition: all 0.25s ease; z-index: 60; white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
   .export-textarea { width: 100%; min-height: 320px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 7px; color: var(--text); font-family: inherit; font-size: 16px; line-height: 1.5; padding: 10px; white-space: pre; resize: vertical; }
@@ -171,13 +174,23 @@
   // ================= CONFIG =================
   var DEFAULT_REASONS = [
     ['MC', 'MC'], ['AM MA', 'Out'], ['PM MA', 'Out'], ['OSL', 'Leave'], ['LL', 'Leave'],
-    ['OFF', 'Leave'], ['RSO', 'Out'], ['OOC', 'Out'], ['ASA', 'Out'], ['GD', 'OnDuty'],
-    ['MEDIC DUTY', 'OnDuty'], ['MED COVER', 'OnDuty'], ['BR COHESION', 'OnDuty'], ['LATE', 'Out'],
-    ['SKILLSFUTURE', 'OnDuty'], ['COURSE', 'OnDuty'], ['BR WORK', 'OnDuty'], ['PM LL', 'Leave'],
+    ['OFF', 'Leave'], ['RSO', 'Out'], ['OOC', 'Out'], ['ASA CURRENT', 'OnDuty'], ['ASA OUTGOING', 'OnDuty'],
+    ['GD CURRENT', 'OnDuty'], ['GD OUTGOING', 'OnDuty'],
+    ['MEDIC DUTY', 'OnDuty'], ['MED COVER', 'OnDuty'], ['BR COHESION', 'Out'], ['LATE', 'Out'],
+    ['SKILLSFUTURE', 'Out'], ['COURSE', 'Out'], ['BR WORK', 'Out'], ['PM LL', 'Leave'],
     ['AM LL', 'Leave'], ['AM OSL', 'Leave'], ['PM OSL', 'Leave'], ['OTHER', 'Out']
   ];
   var REASON_BUCKET = {};
   DEFAULT_REASONS.forEach(function (r) { REASON_BUCKET[r[0]] = r[1]; });
+  // Which sessions each of these two reasons is offered in — CURRENT is used
+  // while someone's still actively on duty into the evening (PM/Stay-in),
+  // OUTGOING specifically for AM, matching how carryForwardStayInToNextAm_
+  // and carryForwardAmToPm_ transform one into the other across sessions.
+  var SESSION_RESTRICTED_REASONS = {
+    'ASA CURRENT': ['PM', 'STAYIN'], 'GD CURRENT': ['PM', 'STAYIN'],
+    'ASA OUTGOING': ['AM'], 'GD OUTGOING': ['AM'],
+    'AM LL': ['AM', 'STAYIN'], 'AM OSL': ['AM', 'STAYIN'], 'AM MA': ['AM', 'STAYIN']
+  };
   var REASONS_WITH_DETAIL = {
     'MC': { type: 'dates' }, 'OSL': { type: 'dates' }, 'LL': { type: 'dates' },
     'OOC': { type: 'text', placeholder: 'Camp/Activity' },
@@ -198,7 +211,7 @@
     'OSL': 'leaves', 'LL': 'leaves', 'PM LL': 'leaves', 'AM LL': 'leaves', 'AM OSL': 'leaves', 'PM OSL': 'leaves',
     'AM MA': 'ma', 'PM MA': 'ma',
     'OFF': 'offs',
-    'RSO': 'others', 'OOC': 'others', 'ASA': 'others', 'GD': 'others', 'MEDIC DUTY': 'others',
+    'RSO': 'others', 'OOC': 'others', 'ASA CURRENT': 'others', 'ASA OUTGOING': 'others', 'GD CURRENT': 'others', 'GD OUTGOING': 'others', 'MEDIC DUTY': 'others',
     'MED COVER': 'others', 'BR COHESION': 'others', 'LATE': 'others', 'SKILLSFUTURE': 'others',
     'COURSE': 'others', 'BR WORK': 'others', 'OTHER': 'others'
   };
@@ -383,16 +396,17 @@
   var lastParadeSession = 'AM';
   var mainTab = 'parade';
   var paradeFilter = 'ALL';
+  var employeeSubFilter = 'ALL';
+  var superiorSubFilter = 'ALL';
   var paradeSubFilter = 'ALL';
   var lastSaved = null, lastRefreshed = null;
   var stayInLastSaved = null, stayInLastRefreshed = null;
-  var pendingOut = { empId: null, session: null };
-  var pendingOutTimer = null;
   var dateChangeModal = { open: false, step: 'pick', pickedDate: '', conflictInfo: '' };
   var historyList = [];
   var historyShowAM = true, historyShowPM = true, historyShowStayIn = true;
   var historyDateFilter = '';
   var historyViewKey = null, historyViewMeta = null, historyViewPeople = null;
+  var historyViewEditMode = false, historyViewDirty = false;
   var historyViewFilter = 'ALL', historyViewSubFilter = 'ALL';
   var dataSubTab = 'employees';
   var detailReasonName = '', detailDays = 1, detailStartDate = '', detailEndDate = '', detailText = '';
@@ -415,6 +429,8 @@
       subUnits = SEED_SUBUNITS;
     }
     APP.subUnits = subUnits;
+    sortSubUnitsByOrder_();
+    await backfillSubUnitOrder_();
     APP.employees = await idbGetAll('employees');
     APP.superiors = await idbGetAll('superiors');
     APP.date = todayIso_();
@@ -447,7 +463,7 @@
     var allAttendance = await idbGetAll('attendance');
     APP.attendance = allAttendance.filter(function (r) { return r.date === dateIso; });
     var duty = await idbGet('dailyDuty', dateIso);
-    APP.dailyDuty = duty || { date: dateIso, cdsEmployeeId: '', cdoSuperiorId: '', stayInCdsEmployeeId: '' };
+    APP.dailyDuty = duty || { date: dateIso, amCdsEmployeeId: '', pmCdsEmployeeId: '', amCdoSuperiorId: '', pmCdoSuperiorId: '', stayInCdsEmployeeId: '' };
   }
 
   function showToast(msg) {
@@ -461,6 +477,11 @@
   // ================= CORE ATTENDANCE HELPERS =================
   function isActiveForParade_(e) { return !isTrue(e.isExcluded) && !isTrue(e.isORD); }
   function bucketForReasonLocal(reason) { return REASON_BUCKET[reason] || 'Out'; }
+  /** CDS/CDO are independent per session — picking one for AM never touches
+   *  PM's, and vice versa. These just resolve which dailyDuty field a given
+   *  session's picks actually live in. */
+  function cdsFieldFor_(sess) { return sess === 'AM' ? 'amCdsEmployeeId' : sess === 'PM' ? 'pmCdsEmployeeId' : 'stayInCdsEmployeeId'; }
+  function cdoFieldFor_(sess) { return sess === 'AM' ? 'amCdoSuperiorId' : 'pmCdoSuperiorId'; }
   function attFor(empId, sess) {
     var r = APP.attendance.filter(function (a) { return a.empId === empId && a.session === sess; })[0];
     return r || { empId: empId, session: sess, status: 'In', reason: '', bucket: 'In' };
@@ -481,6 +502,7 @@
     return c;
   }
   function reasonAvailableForSession_(reasonName) {
+    if (SESSION_RESTRICTED_REASONS.hasOwnProperty(reasonName)) return SESSION_RESTRICTED_REASONS[reasonName].indexOf(session) !== -1;
     if (reasonName.indexOf('AM ') === 0) return session === 'AM';
     if (reasonName.indexOf('PM ') === 0) return session === 'PM';
     return true;
@@ -581,11 +603,9 @@
         '<div class="substatus">Excluded from Parade State — tap to restore</div></div>';
     }
     var cls = BUCKET_CLASS[a.bucket] || 'out';
-    var isArmedOut = pendingOut.empId === e.id && pendingOut.session === session && a.bucket === 'In';
-    var sub = isArmedOut ? 'Tap again to mark Out'
-      : session === 'STAYIN' ? (a.reason ? a.reason : BUCKET_LABEL[a.bucket])
+    var sub = session === 'STAYIN' ? (a.reason ? a.reason : BUCKET_LABEL[a.bucket])
       : session + ' · ' + (a.reason ? a.reason : BUCKET_LABEL[a.bucket]);
-    return '<div class="emprow ' + cls + (isArmedOut ? ' armed' : '') + '" data-emp="' + e.id + '">' +
+    return '<div class="emprow ' + cls + '" data-emp="' + e.id + '">' +
       '<div class="name"><span class="rank">' + esc(e.rank) + '</span>' + esc(e.name) + '</div>' +
       '<div class="substatus">' + esc(sub) + '</div></div>';
   }
@@ -642,7 +662,7 @@
     html += '<div class="export-row"><button class="btn ghost full" id="btnExport">EXPORT</button></div>';
 
     html += '<div class="statgrid">' +
-      statCard('in', counts.In, 'IN') + statCard('out', counts.Out, 'OUT') + statCard('onduty', counts.OnDuty, 'ON DUTY') +
+      statCard('in', counts.In, 'IN') + statCard('out', total - counts.In, 'OUT') + statCard('onduty', counts.OnDuty, 'ON DUTY') +
       statCard('leave', counts.Leave, 'LEAVES') + statCard('mc', counts.MC, 'MC') + statCard('total', total, 'TOTAL') + '</div>';
     html += statusMsg;
 
@@ -656,9 +676,9 @@
     html += '<div class="chiprow">' + subChip('ALL', 'ALL SUB-UNITS') + APP.subUnits.map(function (s) { return subChip(s.name, s.name); }).join('') + '</div>';
 
     html += '<div class="selector-row"><label>CDS</label><select id="selCDS"><option value="">— select —</option>' +
-      cdsOptions.map(function (e) { return '<option value="' + esc(e.id) + '" ' + (APP.dailyDuty.cdsEmployeeId === e.id ? 'selected' : '') + '>' + esc(e.rank) + ' ' + esc(e.name) + '</option>'; }).join('') + '</select></div>';
+      cdsOptions.map(function (e) { return '<option value="' + esc(e.id) + '" ' + (APP.dailyDuty[cdsFieldFor_(session)] === e.id ? 'selected' : '') + '>' + esc(e.rank) + ' ' + esc(e.name) + '</option>'; }).join('') + '</select></div>';
     html += '<div class="selector-row"><label>CDO</label><select id="selCDO"><option value="">— select —</option>' +
-      cdoOptions.map(function (s) { return '<option value="' + esc(s.id) + '" ' + (APP.dailyDuty.cdoSuperiorId === s.id ? 'selected' : '') + '>' + esc(s.rank) + ' ' + esc(s.name) + '</option>'; }).join('') + '</select></div>';
+      cdoOptions.map(function (s) { return '<option value="' + esc(s.id) + '" ' + (APP.dailyDuty[cdoFieldFor_(session)] === s.id ? 'selected' : '') + '>' + esc(s.rank) + ' ' + esc(s.name) + '</option>'; }).join('') + '</select></div>';
 
     var currentTimeLabel = session === 'AM' ? (APP.dailyDuty.amTimeLabel || '0745HRS') : (APP.dailyDuty.pmTimeLabel || '1715HRS');
     html += '<div class="selector-row"><label>Time</label><input type="text" id="timeLabelInput" value="' + esc(currentTimeLabel) + '" placeholder="e.g. 0745HRS"></div>';
@@ -669,7 +689,7 @@
     }
 
     html += '<div class="chiprow">' + chip('ALL', 'ALL') + chip('IN', 'IN') + chip('OUT', 'OUT') + chip('ONDUTY', 'ON DUTY') + chip('LEAVE', 'LEAVES') + chip('MC', 'MC') + '</div>';
-    html += '<div class="press-hint">Press and hold anyone to define a more specific reason</div>';
+    html += '<div class="press-hint">Tap anyone to mark a reason</div>';
     html += '<div id="empGroups">' + employeeGroupsHtml() + '</div>';
     return html;
   }
@@ -691,73 +711,50 @@
         row.addEventListener('pointerup', function () { if (!exMoved) restoreEmployee_(empId); });
         return;
       }
-      var timer = null, fired = false, moved = false, startX = 0, startY = 0;
+      var moved = false, startX = 0, startY = 0;
       row.addEventListener('pointerdown', function (ev) {
-        fired = false; moved = false; startX = ev.clientX; startY = ev.clientY;
+        moved = false; startX = ev.clientX; startY = ev.clientY;
         row.classList.add('pressing');
-        timer = setTimeout(function () {
-          fired = true;
-          row.classList.remove('pressing');
-          if (pendingOut.empId === empId) { clearTimeout(pendingOutTimer); pendingOut = { empId: null, session: null }; }
-          openReasonModal(empId);
-        }, 480);
       });
       row.addEventListener('pointermove', function (ev) {
-        if (moved || fired) return;
+        if (moved) return;
         var dx = ev.clientX - startX, dy = ev.clientY - startY;
-        if (Math.sqrt(dx * dx + dy * dy) > MOVE_CANCEL_PX) { moved = true; clearTimeout(timer); row.classList.remove('pressing'); }
+        if (Math.sqrt(dx * dx + dy * dy) > MOVE_CANCEL_PX) { moved = true; row.classList.remove('pressing'); }
       });
       ['pointerup', 'pointerleave', 'pointercancel'].forEach(function (evt) {
         row.addEventListener(evt, function () {
-          clearTimeout(timer);
           row.classList.remove('pressing');
-          if (evt === 'pointerup' && !fired && !moved) toggleEmpLocal(empId);
+          if (evt === 'pointerup' && !moved) openReasonModal(empId);
         });
       });
       row.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
     });
   }
-  function toggleEmpLocal(empId) {
-    var a = attFor(empId, session);
-    if (a.bucket === 'In') {
-      if (pendingOut.empId === empId && pendingOut.session === session) {
-        clearTimeout(pendingOutTimer);
-        pendingOut = { empId: null, session: null };
-        applyAttendanceLocal({ empId: empId, session: session, status: 'Out', reason: '', bucket: 'Out' });
-        dirtyKeys.add(empId + '|' + session);
-        syncAbsenceRecordForLocal_(empId, '', '', APP.date, 1);
-        render();
-      } else {
-        pendingOut = { empId: empId, session: session };
-        clearTimeout(pendingOutTimer);
-        pendingOutTimer = setTimeout(function () { pendingOut = { empId: null, session: null }; render(); }, 1500);
-        render();
-      }
-    } else {
-      openRemoveReasonConfirmModal_(empId);
-    }
-  }
-  function performMarkIn_(empId) {
-    applyAttendanceLocal({ empId: empId, session: session, status: 'In', reason: '', bucket: 'In' });
+  function performMarkStatus_(empId, targetStatus) {
+    applyAttendanceLocal({ empId: empId, session: session, status: targetStatus, reason: '', bucket: targetStatus });
     dirtyKeys.add(empId + '|' + session);
-    if (session === 'AM') syncAbsenceRecordForLocal_(empId, '', '', APP.date, 1);
+    // Deleting a reason from any attendance type fully erases the backing
+    // absence record too — matching Data-tab deletion. There's no more
+    // "local-only removal" distinction; refresh results change accordingly.
+    syncAbsenceRecordForLocal_(empId, '', '', APP.date, 1);
     render();
   }
-  function openRemoveReasonConfirmModal_(empId) {
+  function openMarkConfirmModal_(empId, targetStatus) {
     var e = APP.employees.filter(function (x) { return x.id === empId; })[0];
     var a = attFor(empId, session);
+    var label = targetStatus === 'In' ? 'Mark In' : 'Mark Out';
     var html = '<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet">' +
-      '<h3>Mark In</h3><div class="sub">' + esc(e.rank) + ' ' + esc(e.name) + ' is currently marked "' + esc(a.reason || BUCKET_LABEL[a.bucket]) + '". Type CONFIRM to mark them In instead.</div>' +
-      '<input type="text" id="removeReasonConfirmInput" class="field-row-input" style="width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;margin-bottom:14px;" placeholder="Type CONFIRM" autocomplete="off" autocapitalize="off">' +
-      '<button class="btn full danger" id="removeReasonConfirmBtn" style="margin-bottom:8px;">MARK IN</button>' +
+      '<h3>' + label + '</h3><div class="sub">' + esc(e.rank) + ' ' + esc(e.name) + ' is currently marked "' + esc(a.reason || BUCKET_LABEL[a.bucket]) + '". Type CONFIRM to ' + label.toLowerCase() + ' instead.</div>' +
+      '<input type="text" id="markConfirmInput" style="width:100%;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px;margin-bottom:14px;" placeholder="Type CONFIRM" autocomplete="off" autocapitalize="off">' +
+      '<button class="btn full danger" id="markConfirmBtn" style="margin-bottom:8px;">' + label.toUpperCase() + '</button>' +
       '<button class="modal-close" id="modalClose">CANCEL</button></div></div>';
     document.getElementById('modalRoot').innerHTML = html;
     document.getElementById('modalOverlay').addEventListener('click', function (ev) { if (ev.target.id === 'modalOverlay') closeModal(); });
     document.getElementById('modalClose').addEventListener('click', closeModal);
-    var input = document.getElementById('removeReasonConfirmInput');
-    document.getElementById('removeReasonConfirmBtn').addEventListener('click', function () {
+    var input = document.getElementById('markConfirmInput');
+    document.getElementById('markConfirmBtn').addEventListener('click', function () {
       if ((input.value || '').trim().toLowerCase() !== 'confirm') { showToast('Type CONFIRM exactly to proceed.'); return; }
-      performMarkIn_(empId);
+      performMarkStatus_(empId, targetStatus);
       closeModal();
     });
   }
@@ -787,7 +784,7 @@
   }
   function renderReasonModal(empId, e) {
     var plainReasons = DEFAULT_REASONS.map(function (r) { return r[0]; })
-      .filter(function (r) { return reasonAvailableForSession_(r) && (session !== 'STAYIN' || (r !== 'AM MA' && r !== 'PM MA')); });
+      .filter(function (r) { return reasonAvailableForSession_(r) && (session !== 'STAYIN' || r !== 'PM MA'); });
     var html;
     if (detailReasonName) {
       var cfg = REASONS_WITH_DETAIL[detailReasonName];
@@ -812,7 +809,9 @@
         '<div class="reason-grid">' + plainReasons.map(function (r) {
           return '<button class="reason-btn" data-reason="' + esc(r) + '">' + esc(r) + '</button>';
         }).join('') + '</div>' +
-        '<button class="btn full ghost" id="btnMarkIn" style="margin:10px 0 8px;">MARK IN</button>' +
+        '<div class="field-row-2" style="margin:10px 0 8px;">' +
+        '<button class="btn ghost" id="btnMarkIn" style="flex:1;">MARK IN</button>' +
+        '<button class="btn ghost" id="btnMarkOut" style="flex:1;">MARK OUT</button></div>' +
         '<button class="btn ghost full" id="removeFromParadeBtn" style="margin-bottom:8px;">REMOVE FROM PARADE STATE</button>' +
         '<button class="modal-close" id="modalClose">CANCEL</button></div></div>';
     }
@@ -874,8 +873,15 @@
     } else {
       document.getElementById('btnMarkIn').addEventListener('click', function () {
         var currentRec = attFor(empId, session);
-        if (currentRec.reason) { closeModal(); openRemoveReasonConfirmModal_(empId); return; }
-        performMarkIn_(empId);
+        if (currentRec.reason) { closeModal(); openMarkConfirmModal_(empId, 'In'); return; }
+        performMarkStatus_(empId, 'In');
+        closeModal();
+      });
+      var markOutBtn = document.getElementById('btnMarkOut');
+      if (markOutBtn) markOutBtn.addEventListener('click', function () {
+        var currentRec = attFor(empId, session);
+        if (currentRec.reason) { closeModal(); openMarkConfirmModal_(empId, 'Out'); return; }
+        performMarkStatus_(empId, 'Out');
         closeModal();
       });
       document.querySelectorAll('[data-reason]').forEach(function (btn) {
@@ -929,9 +935,9 @@
     var counts = paradeCounts(sess);
     var activeEmployees = APP.employees.filter(function (e) { return isActiveForParade_(e) && (!isStayIn || isTrue(e.isStayIn)); });
     var total = activeEmployees.length;
-    var cdsId = isStayIn ? APP.dailyDuty.stayInCdsEmployeeId : APP.dailyDuty.cdsEmployeeId;
+    var cdsId = APP.dailyDuty[cdsFieldFor_(sess)];
     var cdsEmp = APP.employees.filter(function (e) { return e.id === cdsId; })[0];
-    var cdoSup = isStayIn ? null : APP.superiors.filter(function (s) { return s.id === APP.dailyDuty.cdoSuperiorId; })[0];
+    var cdoSup = isStayIn ? null : APP.superiors.filter(function (s) { return s.id === APP.dailyDuty[cdoFieldFor_(sess)]; })[0];
     var people = activeEmployees.map(function (e) {
       var a = attFor(e.id, sess);
       return { id: e.id, rank: e.rank, name: e.name, subUnit: e.subUnit, status: a.bucket === 'In' ? 'Present' : 'Absent', reason: a.reason || '', bucket: a.bucket };
@@ -984,47 +990,179 @@
     APP.subUnits = await idbGetAll('subUnits');
     APP.employees = await idbGetAll('employees');
     APP.superiors = await idbGetAll('superiors');
-    if (mainTab === 'stayin') stayInLastRefreshed = new Date(); else lastRefreshed = new Date();
+    var pulled = 0;
+    if (mainTab === 'stayin') {
+      pulled = pullBackAbsenceRecords_('STAYIN');
+      stayInLastRefreshed = new Date();
+    } else {
+      pulled += pullBackAbsenceRecords_('AM');
+      pulled += pullBackAbsenceRecords_('PM');
+      lastRefreshed = new Date();
+    }
+    runAutoFillPass_(); // always — this is what gives MC its "always refreshed on every type" behavior, with the RSO exception
+    if (pulled) showToast('Pulled back ' + pulled + ' record(s) from Data.');
     render();
   }
 
   // ================= CARRY-FORWARD / AUTO-FILL =================
-  function autoFillActiveLeaves_() {
-    var todayStr = APP.date;
+  /** REFRESH's "pull back" — since deliberately marking someone In/Out no
+   *  longer deletes their underlying absence record (see performMarkStatus_),
+   *  this is what brings it back: for AM/PM, re-applies any absence record
+   *  covering today whose reason doesn't already match what's showing. For
+   *  Stay-in, simply clears its current entries and lets runAutoFillPass_'s
+   *  usual Stay-in rules (multi-day continuation, next-day starts, same-day
+   *  PM reference) recompute them fresh. */
+  function pullBackAbsenceRecords_(sessForRefresh) {
+    var pulled = 0;
+    if (sessForRefresh === 'STAYIN') {
+      APP.employees.forEach(function (emp) {
+        if (!isTrue(emp.isStayIn)) return;
+        var idx = APP.attendance.findIndex(function (r) { return r.empId === emp.id && r.session === 'STAYIN'; });
+        if (idx >= 0) { APP.attendance.splice(idx, 1); pulled++; }
+      });
+    } else {
+      Object.keys(REASON_CATEGORIES).forEach(function (catKey) {
+        if (catKey === 'mc') return; // handled authoritatively by applyMcDirectly_ instead, including the RSO exception
+        var listKey = REASON_CATEGORIES[catKey].listKey;
+        (APP[listKey] || []).forEach(function (rec) {
+          if (!coversDate_(rec, APP.date)) return;
+          if (reasonSessionsFor_(rec.reasonName).indexOf(sessForRefresh) === -1) return;
+          var bucket = bucketForReasonLocal(baseReasonNameOf_(rec.reason) || rec.reason);
+          var current = attFor(rec.employeeId, sessForRefresh);
+          if (current.reason === rec.reason && current.bucket === bucket) return;
+          applyAttendanceLocal({ empId: rec.employeeId, session: sessForRefresh, status: bucket === 'In' ? 'In' : 'Out', reason: rec.reason, bucket: bucket });
+          dirtyKeys.add(rec.employeeId + '|' + sessForRefresh);
+          pulled++;
+        });
+      });
+    }
+    return pulled;
+  }
+  /** MC is the one reason that "always refreshes on all attendance types" —
+   *  for every MC record covering today, force AM/PM/Stay-in to show it,
+   *  overriding whatever's currently there, with exactly one exception: RSO
+   *  is never overwritten by MC. Also handles the Sunday rule: if an MC
+   *  covers a Monday, the preceding Sunday's Stay-in — if it was already
+   *  saved to history — also gets marked with that same MC. */
+  function applyMcDirectly_() {
     var filled = 0;
-    APP.employees.forEach(function (emp) {
-      if (!isActiveForParade_(emp)) return;
+    var todayStr = APP.date;
+    (APP.mcRecords || []).forEach(function (rec) {
+      if (!coversDate_(rec, todayStr)) return;
+      var emp = APP.employees.filter(function (e) { return e.id === rec.employeeId; })[0];
+      if (!emp || !isActiveForParade_(emp)) return;
       var sessions = isTrue(emp.isStayIn) ? ['AM', 'PM', 'STAYIN'] : ['AM', 'PM'];
       sessions.forEach(function (sess) {
-        var hasExisting = APP.attendance.filter(function (r) { return r.empId === emp.id && r.session === sess; }).length > 0;
-        if (hasExisting) return;
-        for (var i = historyList.length - 1; i >= 0; i--) {
-          var people = (historyList[i].snapshot && historyList[i].snapshot.people) || [];
-          var personRec = people.filter(function (p) { return p.id === emp.id; })[0];
-          if (!personRec || !personRec.reason) continue;
-          var parsed = parseAnyMultiDayReason_(personRec.reason);
-          if (!parsed) continue;
-          if (parsed.startDate <= todayStr && todayStr <= parsed.endDate) {
-            applyAttendanceLocal({ empId: emp.id, session: sess, status: 'Out', reason: personRec.reason, bucket: personRec.bucket || bucketForReasonLocal(personRec.reason) });
-            dirtyKeys.add(emp.id + '|' + sess);
-            filled++;
-            break;
-          }
-        }
+        var current = attFor(rec.employeeId, sess);
+        if (baseReasonNameOf_(current.reason) === 'RSO') return;
+        if (current.reason === rec.reason && current.bucket === 'MC') return;
+        applyAttendanceLocal({ empId: rec.employeeId, session: sess, status: 'Out', reason: rec.reason, bucket: 'MC' });
+        dirtyKeys.add(rec.employeeId + '|' + sess);
+        filled++;
       });
     });
     return filled;
   }
+  /** MC's Sunday-backward rule: if an MC covers a Monday (the only weekday
+   *  whose preceding calendar day is a Sunday, since MC ranges are weekdays-
+   *  only), the prior Sunday's Stay-in — if already saved to history by the
+   *  time this Monday's MC is being processed — is updated to show the same
+   *  MC. This reaches into a saved snapshot directly rather than live
+   *  attendance, since by the time a later day's MC exists, the preceding
+   *  Sunday's Stay-in has typically already been saved and moved past. */
+  /** AM LL/AM OSL backward rule: whenever AM LL or AM OSL ends up applied to
+   *  today's AM (whether picked live or carried forward from last night's
+   *  Stay-in), the PRECEDING night's Stay-in — if already saved to history —
+   *  is updated to show the same reason too. Same pattern as the MC Sunday-
+   *  backward rule: reaches into an already-saved snapshot directly, since
+   *  by the time today's AM is being processed, last night's Stay-in has
+   *  typically already been saved and moved past. */
+  async function applyAmLlOslBackward_() {
+    var updated = 0;
+    var yesterday = previousDayIso_(APP.date);
+    var h = historyList.filter(function (x) { return x.date === yesterday && x.session === 'STAYIN'; })[0];
+    if (!h || !h.snapshot || !h.snapshot.people) return 0;
+    var amToday = APP.attendance.filter(function (r) { return r.session === 'AM' && (r.reason === 'AM LL' || r.reason === 'AM OSL'); });
+    for (var i = 0; i < amToday.length; i++) {
+      var rec = amToday[i];
+      var person = h.snapshot.people.filter(function (p) { return p.id === rec.empId; })[0];
+      if (!person || (person.reason === rec.reason && person.bucket === rec.bucket)) continue;
+      person.reason = rec.reason; person.bucket = rec.bucket;
+      updated++;
+    }
+    if (updated) {
+      h.snapshot.present = h.snapshot.people.filter(function (p) { return p.bucket === 'In'; }).length;
+      try { await idbBulkPut('paradeHistory', [h]); } catch (err) { console.log('[AutoFill] AM LL/OSL backward save FAILED:', err); }
+    }
+    return updated;
+  }
+  async function applyMcSundayBackward_() {
+    var updated = 0;
+    for (var mi = 0; mi < (APP.mcRecords || []).length; mi++) {
+      var rec = APP.mcRecords[mi];
+      var days = parseInt(rec.days, 10) || 1;
+      var covered = weekdayDatesFrom_(rec.startDate, days);
+      for (var di = 0; di < covered.length; di++) {
+        var d = covered[di];
+        var dObj = new Date(d + 'T00:00:00');
+        if (dObj.getDay() !== 1) continue; // only Mondays have a Sunday immediately before them
+        var sunday = new Date(dObj); sunday.setDate(sunday.getDate() - 1);
+        var sundayIso = sunday.toISOString().slice(0, 10);
+        var h = historyList.filter(function (x) { return x.date === sundayIso && x.session === 'STAYIN'; })[0];
+        if (!h || !h.snapshot || !h.snapshot.people) continue;
+        var person = h.snapshot.people.filter(function (p) { return p.id === rec.employeeId; })[0];
+        if (!person || (person.reason === rec.reason && person.bucket === 'MC')) continue;
+        var wasIn = person.bucket === 'In';
+        person.reason = rec.reason; person.bucket = 'MC';
+        h.snapshot.present = h.snapshot.people.filter(function (p) { return p.bucket === 'In'; }).length;
+        try { await idbBulkPut('paradeHistory', [h]); updated++; } catch (err) { console.log('[AutoFill] MC Sunday-backward save FAILED:', err); }
+      }
+    }
+    return updated;
+  }
+  /** [STAY-IN] Leave/Off "last day" rule: on the final day an MC/Leave/Off
+   *  record covers, that same day's Stay-in shows a plain Out rather than
+   *  the specific reason text (AM/PM still show the specific reason). Checks
+   *  the absence record's own computed end date directly, not the already-
+   *  applied reason text, since OFF records don't embed a date range in
+   *  their text the way MC/OSL/LL do. */
+  function clearEndingLeavesForStayIn_() {
+    var cleared = 0;
+    var todayStr = APP.date;
+    APP.employees.forEach(function (emp) {
+      if (!isActiveForParade_(emp) || !isTrue(emp.isStayIn)) return;
+      ['leaves', 'offs'].forEach(function (catKey) {
+        var listKey = REASON_CATEGORIES[catKey].listKey;
+        (APP[listKey] || []).some(function (rec) {
+          if (rec.employeeId !== emp.id) return false;
+          var days = parseInt(rec.days, 10) || 1;
+          var endDate = days <= 1 ? rec.startDate : weekdayDatesFrom_(rec.startDate, days).slice(-1)[0];
+          if (endDate !== todayStr) return false;
+          var current = attFor(emp.id, 'STAYIN');
+          if (current.bucket === 'Out' && !current.reason) return true; // already a plain Out, nothing to do
+          applyAttendanceLocal({ empId: emp.id, session: 'STAYIN', status: 'Out', reason: '', bucket: 'Out' });
+          dirtyKeys.add(emp.id + '|STAYIN');
+          cleared++;
+          return true;
+        });
+      });
+    });
+    return cleared;
+  }
+  /** [PM] AM -> PM. Per the comprehensive spec: AM MA, AM LL, AM OSL, RSO,
+   *  GD OUTGOING, ASA OUTGOING, LATE, SKILLSFUTURE, BR WORK, and OTHER all
+   *  become a plain Out rather than carrying their specific text. Everything
+   *  else (MEDIC DUTY, MED COVER, BR COHESION, COURSE, OOC) carries verbatim. */
   function carryForwardAmToPm_() {
     var filled = 0;
-    var AM_ONLY = ['AM MA', 'AM LL', 'AM OSL'];
+    var BLANK_ON_CARRY = ['AM MA', 'AM LL', 'AM OSL', 'RSO', 'GD OUTGOING', 'ASA OUTGOING', 'LATE', 'SKILLSFUTURE', 'BR WORK', 'OTHER'];
     APP.employees.forEach(function (emp) {
       if (!isActiveForParade_(emp)) return;
       var amRec = APP.attendance.filter(function (r) { return r.empId === emp.id && r.session === 'AM'; })[0];
       if (!amRec || amRec.bucket === 'In') return;
       var hasPM = APP.attendance.filter(function (r) { return r.empId === emp.id && r.session === 'PM'; }).length > 0;
       if (hasPM) return;
-      if (AM_ONLY.indexOf(amRec.reason) !== -1) {
+      if (BLANK_ON_CARRY.indexOf(amRec.reason) !== -1) {
         applyAttendanceLocal({ empId: emp.id, session: 'PM', status: 'Out', reason: '', bucket: 'Out' });
       } else {
         applyAttendanceLocal({ empId: emp.id, session: 'PM', status: 'Out', reason: amRec.reason, bucket: amRec.bucket });
@@ -1034,78 +1172,82 @@
     });
     return filled;
   }
-  /** PM Parade State -> that same day's Stay-in Strength. Carries MC and
-   *  anything in the 'others' category (GD, ASA, RSO, OOC, MEDIC DUTY, MED
-   *  COVER, BR COHESION, LATE, SKILLSFUTURE, COURSE, BR WORK, OTHER) — not
-   *  OSL/LL/OFF/MA, which stay PM-only. */
+  /** [STAY-IN] Same-day PM -> Stay-in. GD CURRENT/ASA CURRENT, MEDIC DUTY,
+   *  MED COVER, and COURSE all carry their specific text; any other out-type
+   *  PM reason becomes a plain Out — this is the lowest-priority, catch-all
+   *  rule, meant to run after the more specific Stay-in rules (multi-day
+   *  continuation, next-day starts) have already had a chance to claim the
+   *  slot. */
   function carryForwardPmToStayIn_() {
     var filled = 0;
+    var SPECIFIC_CARRY = ['GD CURRENT', 'ASA CURRENT', 'MEDIC DUTY', 'MED COVER', 'COURSE'];
     APP.employees.forEach(function (emp) {
       if (!isActiveForParade_(emp) || !isTrue(emp.isStayIn)) return;
-      var pmRec = APP.attendance.filter(function (r) { return r.empId === emp.id && r.session === 'PM'; })[0];
-      if (!pmRec || pmRec.bucket === 'In') return;
-      var baseName = baseReasonNameOf_(pmRec.reason);
-      var shouldCarry = baseName === 'MC' || REASON_CATEGORY_OF_NAME[baseName] === 'others';
-      if (!shouldCarry) return;
       var hasExisting = APP.attendance.filter(function (r) { return r.empId === emp.id && r.session === 'STAYIN'; }).length > 0;
       if (hasExisting) return;
-      applyAttendanceLocal({ empId: emp.id, session: 'STAYIN', status: 'Out', reason: pmRec.reason, bucket: pmRec.bucket });
+      var pmRec = APP.attendance.filter(function (r) { return r.empId === emp.id && r.session === 'PM'; })[0];
+      if (!pmRec || pmRec.bucket === 'In') return;
+      if (SPECIFIC_CARRY.indexOf(pmRec.reason) !== -1) {
+        applyAttendanceLocal({ empId: emp.id, session: 'STAYIN', status: 'Out', reason: pmRec.reason, bucket: pmRec.bucket });
+      } else {
+        applyAttendanceLocal({ empId: emp.id, session: 'STAYIN', status: 'Out', reason: '', bucket: 'Out' });
+      }
       dirtyKeys.add(emp.id + '|STAYIN');
       filled++;
     });
     return filled;
   }
-  /** Yesterday's saved Stay-in Strength -> today's AM. Only carries 'others'
-   *  category reasons (GD, ASA, RSO, OOC, MEDIC DUTY, MED COVER, BR COHESION,
-   *  LATE, SKILLSFUTURE, COURSE, BR WORK, OTHER) — MC continuing into today is
-   *  handled separately by autoFillActiveLeaves_ (multi-day MC/OSL/LL from
-   *  history), and OSL/LL/OFF continuing or starting today by the absence-
-   *  records sync (applyLocalAbsenceRecordsToToday_). Keeping those on their
-   *  own mechanisms avoids this rule double-applying or conflicting with them. */
+  /** [AM] Yesterday's Stay-in -> today's AM. Per the comprehensive spec:
+   *  - GD CURRENT/ASA CURRENT transform into GD OUTGOING/ASA OUTGOING
+   *  - AM LL, AM OSL, BR COHESION, COURSE carry over verbatim
+   *  - MEDIC DUTY/MED COVER carry over verbatim, but ONLY when that Stay-in
+   *    night was a Sunday
+   *  - RSO, LATE, SKILLSFUTURE, BR WORK, OTHER all become a plain Out
+   *  Anything not listed here (e.g. a plain Out, or reasons that shouldn't
+   *  realistically reach Stay-in) doesn't carry at all. */
   function carryForwardStayInAbsencesToNextAm_() {
     var filled = 0;
+    var TRANSFORM = { 'GD CURRENT': 'GD OUTGOING', 'ASA CURRENT': 'ASA OUTGOING' };
+    var VERBATIM = ['AM LL', 'AM OSL', 'AM MA', 'BR COHESION', 'COURSE'];
+    var VERBATIM_SUNDAY_ONLY = ['MEDIC DUTY', 'MED COVER'];
+    var BLANK_ON_CARRY = ['RSO', 'LATE', 'SKILLSFUTURE', 'BR WORK', 'OTHER'];
     var yesterday = previousDayIso_(APP.date);
+    var wasSunday = new Date(yesterday + 'T00:00:00').getDay() === 0;
     var stayInRecord = historyList.filter(function (h) { return h.date === yesterday && h.session === 'STAYIN'; })[0];
     if (!stayInRecord) return 0;
     var people = (stayInRecord.snapshot && stayInRecord.snapshot.people) || [];
     people.forEach(function (p) {
       if (p.bucket === 'In') return;
-      var baseName = baseReasonNameOf_(p.reason);
-      if (REASON_CATEGORY_OF_NAME[baseName] !== 'others') return;
       var emp = APP.employees.filter(function (e) { return e.id === p.id; })[0];
       if (!emp || !isActiveForParade_(emp)) return;
       var hasExisting = APP.attendance.filter(function (r) { return r.empId === p.id && r.session === 'AM'; }).length > 0;
       if (hasExisting) return;
-      applyAttendanceLocal({ empId: p.id, session: 'AM', status: 'Out', reason: p.reason, bucket: p.bucket });
+      var newReason = null, newBucket = null;
+      if (TRANSFORM.hasOwnProperty(p.reason)) { newReason = TRANSFORM[p.reason]; newBucket = bucketForReasonLocal(newReason); }
+      else if (VERBATIM.indexOf(p.reason) !== -1) { newReason = p.reason; newBucket = p.bucket; }
+      else if (wasSunday && VERBATIM_SUNDAY_ONLY.indexOf(p.reason) !== -1) { newReason = p.reason; newBucket = p.bucket; }
+      else if (BLANK_ON_CARRY.indexOf(p.reason) !== -1) { newReason = ''; newBucket = 'Out'; }
+      else return;
+      applyAttendanceLocal({ empId: p.id, session: 'AM', status: newBucket === 'In' ? 'In' : 'Out', reason: newReason, bucket: newBucket });
       dirtyKeys.add(p.id + '|AM');
       filled++;
     });
     return filled;
   }
-  /** Anyone with an MC, OSL/LL, or OFF absence record covering TOMORROW (the
-   *  day after Stay-in Strength's own date) gets marked absent in TODAY'S
-   *  Stay-in Strength too — someone who knows they're on MC/leave/off
-   *  starting tomorrow has typically already left camp tonight rather than
-   *  staying in and leaving first thing in the morning. This is separate
-   *  from carryForwardStayInAbsencesToNextAm_ (which looks backward, from
-   *  yesterday's Stay-in into today's AM) — this looks forward, checking
-   *  what's coming up next against tonight's headcount. Only checks MC/
-   *  Leaves/Offs absence records — not MA or 'others', which are covered by
-   *  the same-day PM reference in carryForwardPmToStayIn_ instead. */
+  /** [STAY-IN] MC/OFF/Leave absence records covering TOMORROW also mark
+   *  tonight's Stay-in absent — someone who knows they're off/on leave/on MC
+   *  starting tomorrow has typically already left camp tonight. */
   function applyNextDayAbsencesToStayIn_() {
     var filled = 0;
     var tomorrow = nextDayIso_(APP.date);
-    var relevantCats = ['mc', 'leaves', 'offs', 'ma'];
+    var relevantCats = ['leaves', 'offs'];
     APP.employees.forEach(function (emp) {
       if (!isActiveForParade_(emp) || !isTrue(emp.isStayIn)) return;
       var hasExisting = APP.attendance.filter(function (r) { return r.empId === emp.id && r.session === 'STAYIN'; }).length > 0;
       if (hasExisting) return;
       for (var ci = 0; ci < relevantCats.length; ci++) {
-        var catKey = relevantCats[ci];
-        var listKey = REASON_CATEGORIES[catKey].listKey;
-        var candidates = (APP[listKey] || []).filter(function (r) { return r.employeeId === emp.id && coversDate_(r, tomorrow); });
-        // 'ma' category covers both AM MA and PM MA — only AM MA carries into tonight's Stay-in
-        var match = catKey === 'ma' ? candidates.filter(function (r) { return baseReasonNameOf_(r.reason) === 'AM MA'; })[0] : candidates[0];
+        var listKey = REASON_CATEGORIES[relevantCats[ci]].listKey;
+        var match = (APP[listKey] || []).filter(function (r) { return r.employeeId === emp.id && coversDate_(r, tomorrow); })[0];
         if (match) {
           var bucket = bucketForReasonLocal(baseReasonNameOf_(match.reason) || match.reason);
           applyAttendanceLocal({ empId: emp.id, session: 'STAYIN', status: 'Out', reason: match.reason, bucket: bucket });
@@ -1163,7 +1305,8 @@
       APP[listKey].push(newRec);
     }
 
-    if (catKey === 'mc' || catKey === 'leaves' || catKey === 'offs' || catKey === 'ma') applyNextDayAbsencesToStayIn_();
+    if (catKey === 'mc') { applyMcDirectly_(); applyMcSundayBackward_(); }
+    if (catKey === 'leaves' || catKey === 'offs' || catKey === 'ma') applyNextDayAbsencesToStayIn_();
 
     (async function persist() {
       for (var i = 0; i < toDelete.length; i++) await idbDelete('absenceRecords', toDelete[i]);
@@ -1172,13 +1315,17 @@
   }
 
   function runAutoFillPass_() {
-    var n1 = autoFillActiveLeaves_();
-    var n2 = carryForwardAmToPm_();
-    var n3 = carryForwardPmToStayIn_();
-    var n4 = carryForwardStayInAbsencesToNextAm_();
+    var n1 = applyMcDirectly_();
+    var n2 = clearEndingLeavesForStayIn_();
+    var n3 = carryForwardStayInAbsencesToNextAm_();
+    var n4 = carryForwardAmToPm_();
     var n5 = applyNextDayAbsencesToStayIn_();
+    var n6 = carryForwardPmToStayIn_();
     applyLocalAbsenceRecordsToToday_();
-    if (n1 || n2 || n3 || n4 || n5) showToast('Auto-marked ' + (n1 + n2 + n3 + n4 + n5) + ' record(s) — review before saving.');
+    applyMcSundayBackward_(); // background — writes to a different date's already-saved history, not today's view
+    applyAmLlOslBackward_(); // background — same pattern, for the preceding Stay-in night
+    var total = n1 + n2 + n3 + n4 + n5 + n6;
+    if (total) showToast('Auto-marked ' + total + ' record(s) — review before saving.');
   }
 
   // ================= CHANGE DATE (simplified — no conflict-typing guard, single-user local app) =================
@@ -1236,7 +1383,6 @@
     dirtyKeys.clear();
     dailyDutyDirty = false;
     lastSaved = null; lastRefreshed = null; stayInLastSaved = null; stayInLastRefreshed = null;
-    pendingOut = { empId: null, session: null };
     closeDateChangeModal();
     runAutoFillPass_();
     render();
@@ -1258,8 +1404,8 @@
 
     var exportBtn = document.getElementById('btnExport');
     if (exportBtn) exportBtn.addEventListener('click', function () {
-      var cdsEmp = APP.employees.filter(function (e) { return e.id === APP.dailyDuty.cdsEmployeeId; })[0];
-      var cdoSup = APP.superiors.filter(function (s) { return s.id === APP.dailyDuty.cdoSuperiorId; })[0];
+      var cdsEmp = APP.employees.filter(function (e) { return e.id === APP.dailyDuty[cdsFieldFor_(session)]; })[0];
+      var cdoSup = APP.superiors.filter(function (s) { return s.id === APP.dailyDuty[cdoFieldFor_(session)]; })[0];
       var people = APP.employees.filter(isActiveForParade_).map(function (e) {
         var a = attFor(e.id, session);
         return { rank: e.rank, name: e.name, subUnit: e.subUnit, status: a.status, reason: a.reason, bucket: a.bucket };
@@ -1269,9 +1415,9 @@
     });
 
     var selCDS = document.getElementById('selCDS');
-    if (selCDS) selCDS.addEventListener('change', function () { APP.dailyDuty.cdsEmployeeId = selCDS.value; dailyDutyDirty = true; render(); });
+    if (selCDS) selCDS.addEventListener('change', function () { APP.dailyDuty[cdsFieldFor_(session)] = selCDS.value; dailyDutyDirty = true; render(); });
     var selCDO = document.getElementById('selCDO');
-    if (selCDO) selCDO.addEventListener('change', function () { APP.dailyDuty.cdoSuperiorId = selCDO.value; dailyDutyDirty = true; render(); });
+    if (selCDO) selCDO.addEventListener('change', function () { APP.dailyDuty[cdoFieldFor_(session)] = selCDO.value; dailyDutyDirty = true; render(); });
 
     var timeInput = document.getElementById('timeLabelInput');
     if (timeInput) timeInput.addEventListener('input', function () {
@@ -1295,15 +1441,22 @@
 
   // ================= STAY-IN STRENGTH =================
   function stayInEmployeeListHtml() {
-    var members = APP.employees.filter(function (e) { return isTrue(e.isStayIn) && !isTrue(e.isORD); });
-    var rows = members.map(function (e) {
-      if (isTrue(e.isExcluded)) { if (paradeFilter !== 'ALL') return ''; return empRowHtml(e, null); }
-      var a = attFor(e.id, 'STAYIN');
-      if (!matchesFilter(a.bucket)) return '';
-      return empRowHtml(e, a);
-    }).join('');
-    if (rows.trim() === '') return '<div class="empty-hint">No one matches this filter.</div>';
-    return '<div class="emp-grid">' + rows + '</div>';
+    var groupNames = sortGroupNamesBySubUnitOrder_(APP.subUnits.map(function (s) { return s.name; }));
+    var html = '', any = false;
+    groupNames.forEach(function (groupName) {
+      var members = APP.employees.filter(function (e) { return e.subUnit === groupName && isTrue(e.isStayIn) && !isTrue(e.isORD); });
+      var rows = members.map(function (e) {
+        if (isTrue(e.isExcluded)) { if (paradeFilter !== 'ALL') return ''; return empRowHtml(e, null); }
+        var a = attFor(e.id, 'STAYIN');
+        if (!matchesFilter(a.bucket)) return '';
+        return empRowHtml(e, a);
+      }).join('');
+      if (rows.trim() === '') return;
+      any = true;
+      html += '<div class="group"><div class="group-title">' + esc(groupName) + '</div><div class="emp-grid">' + rows + '</div></div>';
+    });
+    if (!any) return '<div class="empty-hint">No one matches this filter.</div>';
+    return html;
   }
   function stayInHtml() {
     var counts = paradeCounts('STAYIN');
@@ -1338,7 +1491,7 @@
     html += '<div class="selector-row"><label>CDS</label><select id="selStayInCDS"><option value="">— select —</option>' +
       cdsOptions.map(function (e) { return '<option value="' + esc(e.id) + '" ' + (APP.dailyDuty.stayInCdsEmployeeId === e.id ? 'selected' : '') + '>' + esc(e.rank) + ' ' + esc(e.name) + '</option>'; }).join('') + '</select></div>';
     html += '<div class="chiprow">' + chip('ALL', 'ALL') + chip('IN', 'IN') + chip('OUT', 'OUT') + chip('ONDUTY', 'ON DUTY') + chip('LEAVE', 'LEAVES') + chip('MC', 'MC') + '</div>';
-    html += '<div class="press-hint">Press and hold anyone to define a more specific reason</div>';
+    html += '<div class="press-hint">Tap anyone to mark a reason</div>';
     html += '<div id="empGroups">' + stayInEmployeeListHtml() + '</div>';
     return html;
   }
@@ -1383,6 +1536,7 @@
       if (!groups[g]) { groups[g] = []; order.push(g); }
       groups[g].push(p);
     });
+    order = sortGroupNamesBySubUnitOrder_(order);
 
     order.forEach(function (g) {
       var members = groups[g];
@@ -1438,42 +1592,83 @@
   }
 
   // ================= DATA TAB — roster CRUD =================
+  /** Shared by the Employees and Superiors Data tabs — groups a people list
+   *  by sub-unit (in configured order, no-sub-unit last), applying an
+   *  optional single-sub-unit filter first. rowRenderer draws one person's
+   *  row; the group header/wrapper reuses the same classes Parade State's
+   *  own employeeGroupsHtml uses for visual consistency. */
+  function groupedPeopleHtml_(people, subFilter, rowRenderer, emptyText) {
+    var filtered = subFilter === 'ALL' ? people : people.filter(function (p) { return p.subUnit === subFilter; });
+    if (!filtered.length) return '<div class="empty-hint">' + esc(emptyText) + '</div>';
+    var groups = {}, names = [];
+    filtered.forEach(function (p) {
+      var g = p.subUnit || '— no sub-unit —';
+      if (!groups[g]) { groups[g] = []; names.push(g); }
+      groups[g].push(p);
+    });
+    var orderedNames = sortGroupNamesBySubUnitOrder_(names);
+    return orderedNames.map(function (g) {
+      return '<div class="group"><div class="group-title">' + esc(g) + '</div>' + groups[g].map(rowRenderer).join('') + '</div>';
+    }).join('');
+  }
   function updateDataHtml() {
+    var html = '<div class="field-row-2" style="margin-bottom:12px;">' +
+      '<button class="btn ghost" id="btnMasterExport" style="flex:1;">EXPORT master.json</button>' +
+      '<button class="btn ghost" id="btnMasterImport" style="flex:1;">IMPORT master.json</button></div>';
+
     var tabs = [['subunits', 'SUB-UNITS'], ['employees', 'EMPLOYEES'], ['superiors', 'SUPERIORS'],
       ['company', 'COMPANY'], ['time', 'TIME'],
       ['mc', 'MC'], ['leaves', 'LEAVES'], ['ma', 'MA'], ['offs', 'OFFS'], ['others', 'OTHERS']];
-    var html = '<div class="chiprow">' + tabs.map(function (t) {
+    html += '<div class="chiprow">' + tabs.map(function (t) {
       return '<button class="chip ' + (dataSubTab === t[0] ? 'active' : '') + '" data-datatab="' + t[0] + '">' + t[1] + '</button>';
     }).join('') + '</div>';
 
     if (dataSubTab === 'subunits') {
+      html += '<button class="btn full savebtn" data-save-roster="subUnits" style="margin-bottom:10px;">SAVE ALL SUB-UNITS</button>';
       html += '<button class="btn full ghost" id="btnAddSubUnit" style="margin-bottom:10px;">+ ADD SUB-UNIT</button>';
-      html += APP.subUnits.map(function (s) {
+      html += '<div class="banner">This order controls how sub-units are grouped everywhere — Parade State, exports, and roster sorting.</div>';
+      html += APP.subUnits.map(function (s, i) {
         var count = APP.employees.filter(function (e) { return e.subUnit === s.name; }).length;
+        var isFirst = i === 0, isLast = i === APP.subUnits.length - 1;
         return '<div class="list-row" style="cursor:default;"><div><div class="name">' + esc(s.name) + '</div><div class="meta">' + count + ' people</div></div>' +
-          '<div style="display:flex;gap:6px;"><button class="btn small ghost" data-edit-subunit-btn="' + esc(s.id) + '">EDIT</button>' +
+          '<div style="display:flex;gap:4px;align-items:center;">' +
+          '<button class="btn small ghost" data-move-subunit="' + esc(s.id) + '" data-dir="-1" ' + (isFirst ? 'disabled style="opacity:0.35;"' : '') + '>&uarr;</button>' +
+          '<button class="btn small ghost" data-move-subunit="' + esc(s.id) + '" data-dir="1" ' + (isLast ? 'disabled style="opacity:0.35;"' : '') + '>&darr;</button>' +
+          '<button class="btn small ghost" data-edit-subunit-btn="' + esc(s.id) + '">EDIT</button>' +
           '<button class="btn small danger" data-del-subunit-btn="' + esc(s.id) + '">DELETE</button></div></div>';
       }).join('') || '<div class="empty-hint">No sub-units yet.</div>';
     } else if (dataSubTab === 'employees') {
+      html += '<button class="btn full savebtn" data-save-roster="employees" style="margin-bottom:10px;">SAVE ALL EMPLOYEES</button>';
       html += '<div class="field-row-2" style="margin-bottom:10px;">' +
         '<button class="btn ghost" id="btnAddEmployee" style="flex:1;">+ ADD EMPLOYEE</button>' +
         '<button class="btn ghost" id="btnBulkAddEmployee" style="flex:1;">BULK ADD</button></div>';
-      html += APP.employees.map(function (e) {
+      html += '<div class="banner">Editing an employee is also where you mark them as CDS, Stay-in, or ORD.</div>';
+      html += '<div class="chiprow">' + '<button class="chip ' + (employeeSubFilter === 'ALL' ? 'active' : '') + '" data-emp-subfilter="ALL">ALL</button>' +
+        APP.subUnits.map(function (s) { return '<button class="chip ' + (employeeSubFilter === s.name ? 'active' : '') + '" data-emp-subfilter="' + esc(s.name) + '">' + esc(s.name) + '</button>'; }).join('') + '</div>';
+      html += groupedPeopleHtml_(APP.employees, employeeSubFilter, function (e) {
         var badges = [];
-        if (e.isCDS) badges.push('CDS'); if (e.isExcluded) badges.push('EXCL'); if (e.isORD) badges.push('ORD'); if (e.isStayIn) badges.push('STAY-IN');
-        return '<div class="list-row" style="cursor:default;"><div><div class="name">' + esc(e.rank) + ' ' + esc(e.name) + '</div><div class="meta">' + esc(e.subUnit) + (badges.length ? ' · ' + badges.join(', ') : '') + '</div></div>' +
+        if (e.isCDS) badges.push('<span class="badge badge-cds">CDS</span>');
+        if (e.isStayIn) badges.push('<span class="badge badge-stayin">STAY-IN</span>');
+        if (e.isORD) badges.push('<span class="badge badge-ord">ORD</span>');
+        var meta = badges.length ? badges.join(' ') : '';
+        return '<div class="list-row" style="cursor:default;"><div><div class="name">' + esc(e.rank) + ' ' + esc(e.name) + (e.isExcluded ? ' <span class="meta">(excluded)</span>' : '') + '</div>' + (meta ? '<div class="meta" style="margin-top:3px;">' + meta + '</div>' : '') + '</div>' +
           '<div style="display:flex;gap:6px;"><button class="btn small ghost" data-edit-employee-btn="' + esc(e.id) + '">EDIT</button>' +
           '<button class="btn small danger" data-del-employee-btn="' + esc(e.id) + '">DELETE</button></div></div>';
-      }).join('') || '<div class="empty-hint">No employees yet.</div>';
+      }, 'No employees yet.');
     } else if (dataSubTab === 'superiors') {
+      html += '<button class="btn full savebtn" data-save-roster="superiors" style="margin-bottom:10px;">SAVE ALL SUPERIORS</button>';
       html += '<div class="field-row-2" style="margin-bottom:10px;">' +
         '<button class="btn ghost" id="btnAddSuperior" style="flex:1;">+ ADD SUPERIOR</button>' +
         '<button class="btn ghost" id="btnBulkAddSuperior" style="flex:1;">BULK ADD</button></div>';
-      html += APP.superiors.map(function (s) {
-        return '<div class="list-row" style="cursor:default;"><div><div class="name">' + esc(s.rank) + ' ' + esc(s.name) + '</div><div class="meta">' + esc(s.subUnit) + (s.isCDO ? ' · CDO' : '') + '</div></div>' +
+      html += '<div class="banner">Editing a superior is also where you mark them as CDO.</div>';
+      html += '<div class="chiprow">' + '<button class="chip ' + (superiorSubFilter === 'ALL' ? 'active' : '') + '" data-sup-subfilter="ALL">ALL</button>' +
+        APP.subUnits.map(function (s) { return '<button class="chip ' + (superiorSubFilter === s.name ? 'active' : '') + '" data-sup-subfilter="' + esc(s.name) + '">' + esc(s.name) + '</button>'; }).join('') + '</div>';
+      html += groupedPeopleHtml_(APP.superiors, superiorSubFilter, function (s) {
+        var meta = s.isCDO ? '<span class="badge badge-cdo">CDO</span>' : '';
+        return '<div class="list-row" style="cursor:default;"><div><div class="name">' + esc(s.rank) + ' ' + esc(s.name) + '</div>' + (meta ? '<div class="meta" style="margin-top:3px;">' + meta + '</div>' : '') + '</div>' +
           '<div style="display:flex;gap:6px;"><button class="btn small ghost" data-edit-superior-btn="' + esc(s.id) + '">EDIT</button>' +
           '<button class="btn small danger" data-del-superior-btn="' + esc(s.id) + '">DELETE</button></div></div>';
-      }).join('') || '<div class="empty-hint">No superiors yet.</div>';
+      }, 'No superiors yet.');
     } else if (dataSubTab === 'company') {
       html += '<div class="banner">This name appears on the first line of every exported Parade State.</div>';
       html += '<div class="field-row"><label>Company name</label><input type="text" id="companyNameInput" value="' + esc(APP.companyName) + '"></div>';
@@ -1576,7 +1771,8 @@
         applyAttendanceLocal({ empId: absenceForm.employeeId, session: s, status: bucket === 'In' ? 'In' : 'Out', reason: result.value, bucket: bucket });
       });
     }
-    if (catKey === 'mc' || catKey === 'leaves' || catKey === 'offs' || catKey === 'ma') applyNextDayAbsencesToStayIn_();
+    if (catKey === 'mc') { applyMcDirectly_(); applyMcSundayBackward_(); }
+    if (catKey === 'leaves' || catKey === 'offs' || catKey === 'ma') applyNextDayAbsencesToStayIn_();
 
     editingAbsence = { catKey: null, id: null };
     absenceForm = { employeeId: '', reasonName: '', days: 1, date: '', endDate: '', text: '' };
@@ -1656,6 +1852,71 @@
     render();
   }
 
+  /** The order field is the single source of truth for sub-unit display
+   *  order everywhere — Parade State grouping, filter chips, roster sorting,
+   *  and every export. Sorting APP.subUnits by it here means every consumer
+   *  that just iterates APP.subUnits in array order automatically respects
+   *  whatever arrangement was set in the Data tab. */
+  function sortSubUnitsByOrder_() {
+    APP.subUnits.sort(function (a, b) { return (typeof a.order === 'number' ? a.order : 0) - (typeof b.order === 'number' ? b.order : 0); });
+  }
+  function nextSubUnitOrder_() {
+    var max = -1;
+    APP.subUnits.forEach(function (s) { if (typeof s.order === 'number' && s.order > max) max = s.order; });
+    return max + 1;
+  }
+  /** Legacy sub-units (created before this feature existed) won't have an
+   *  order field — this assigns one based on their current position so
+   *  future sorts are stable, without disturbing whatever order they were
+   *  already effectively in. */
+  async function backfillSubUnitOrder_() {
+    var changed = [];
+    APP.subUnits.forEach(function (s, i) {
+      if (typeof s.order !== 'number') { s.order = i; changed.push(s); }
+    });
+    if (changed.length) { try { await idbBulkPut('subUnits', changed); } catch (err) { console.log('[Data] Sub-unit order backfill failed:', err); } }
+  }
+  /** Sorts a list of group names (e.g. sub-unit names pulled from a saved
+   *  snapshot's people) by the current sub-unit order — any name that
+   *  doesn't match a currently-known sub-unit (e.g. one that's since been
+   *  renamed or deleted) keeps its original relative position, appended
+   *  after everything that does match. */
+  function sortGroupNamesBySubUnitOrder_(names) {
+    var orderOf = {};
+    APP.subUnits.forEach(function (s, i) { orderOf[s.name] = i; });
+    var known = names.filter(function (n) { return orderOf.hasOwnProperty(n); });
+    var unknown = names.filter(function (n) { return !orderOf.hasOwnProperty(n); });
+    known.sort(function (a, b) { return orderOf[a] - orderOf[b]; });
+    return known.concat(unknown);
+  }
+  /** Same idea as sortGroupNamesBySubUnitOrder_, but for a list of people
+   *  (employees/superiors) directly — used for the Data tab's roster lists.
+   *  Anyone whose sub-unit doesn't match a currently-known one (including no
+   *  sub-unit at all) sorts to the bottom. */
+  function sortPeopleBySubUnitOrder_(people) {
+    var orderOf = {};
+    APP.subUnits.forEach(function (s, i) { orderOf[s.name] = i; });
+    return people.slice().sort(function (a, b) {
+      var oa = orderOf.hasOwnProperty(a.subUnit) ? orderOf[a.subUnit] : Infinity;
+      var ob = orderOf.hasOwnProperty(b.subUnit) ? orderOf[b.subUnit] : Infinity;
+      return oa - ob;
+    });
+  }
+  async function moveSubUnit_(id, direction) {
+    var idx = APP.subUnits.findIndex(function (s) { return s.id === id; });
+    var swapWith = idx + direction;
+    if (idx === -1 || swapWith < 0 || swapWith >= APP.subUnits.length) return;
+    var a = APP.subUnits[idx], b = APP.subUnits[swapWith];
+    var tmp = a.order; a.order = b.order; b.order = tmp;
+    sortSubUnitsByOrder_();
+    try {
+      await idbBulkPut('subUnits', [a, b]);
+      render();
+    } catch (err) {
+      console.log('[Data] Move sub-unit FAILED:', err);
+      showToast('Reorder failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+    }
+  }
   function subUnitFormModal(existing) {
     var html = '<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet">' +
       '<h3>' + (existing ? 'Edit' : 'Add') + ' Sub-Unit</h3>' +
@@ -1668,17 +1929,33 @@
     document.getElementById('saveSubUnitBtn').addEventListener('click', async function () {
       var name = document.getElementById('subUnitName').value.trim();
       if (!name) { showToast('Enter a name.'); return; }
-      var rec = existing ? Object.assign({}, existing, { name: name }) : { id: uid_(), name: name };
-      await idbBulkPut('subUnits', [rec]);
-      APP.subUnits = await idbGetAll('subUnits');
-      closeDataModal();
+      var rec = existing ? Object.assign({}, existing, { name: name }) : { id: uid_(), name: name, order: nextSubUnitOrder_() };
+      try {
+        await idbBulkPut('subUnits', [rec]);
+        APP.subUnits = await idbGetAll('subUnits');
+        sortSubUnitsByOrder_();
+        console.log('[Data] Sub-unit saved:', JSON.stringify(rec));
+        showToast('Sub-unit saved.');
+        closeDataModal();
+      } catch (err) {
+        console.log('[Data] Sub-unit save FAILED:', err);
+        showToast('Save failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+      }
     });
   }
   async function deleteSubUnit_(id) {
     if (!confirm('Delete this sub-unit?')) return;
-    await idbDelete('subUnits', id);
-    APP.subUnits = await idbGetAll('subUnits');
-    render();
+    try {
+      await idbDelete('subUnits', id);
+      APP.subUnits = await idbGetAll('subUnits');
+      sortSubUnitsByOrder_();
+      console.log('[Data] Sub-unit deleted:', id);
+      showToast('Sub-unit deleted.');
+      render();
+    } catch (err) {
+      console.log('[Data] Sub-unit delete FAILED:', err);
+      showToast('Delete failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+    }
   }
   function employeeFormModal(existing) {
     var html = '<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet">' +
@@ -1689,7 +1966,6 @@
       '<div class="field-row"><label>Sub-Unit</label><select id="empSubUnit">' + APP.subUnits.map(function (s) { return '<option ' + (existing && existing.subUnit === s.name ? 'selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select></div>' +
       '<div class="toggle-row"><span>CDS</span><input type="checkbox" id="empIsCDS" ' + (existing && existing.isCDS ? 'checked' : '') + '></div>' +
       '<div class="toggle-row"><span>Stay-In</span><input type="checkbox" id="empIsStayIn" ' + (existing && existing.isStayIn ? 'checked' : '') + '></div>' +
-      '<div class="toggle-row"><span>Excluded (temporary)</span><input type="checkbox" id="empIsExcluded" ' + (existing && existing.isExcluded ? 'checked' : '') + '></div>' +
       '<div class="toggle-row"><span>ORD (permanent)</span><input type="checkbox" id="empIsORD" ' + (existing && existing.isORD ? 'checked' : '') + '></div>' +
       '<button class="btn full" id="saveEmpBtn" style="margin:10px 0 8px;">SAVE</button>' +
       '<button class="modal-close" id="modalClose">CANCEL</button></div></div>';
@@ -1706,19 +1982,33 @@
         subUnit: document.getElementById('empSubUnit').value,
         isCDS: document.getElementById('empIsCDS').checked,
         isStayIn: document.getElementById('empIsStayIn').checked,
-        isExcluded: document.getElementById('empIsExcluded').checked,
+        isExcluded: existing ? existing.isExcluded : false,
         isORD: document.getElementById('empIsORD').checked
       };
-      await idbBulkPut('employees', [rec]);
-      APP.employees = await idbGetAll('employees');
-      closeDataModal();
+      try {
+        await idbBulkPut('employees', [rec]);
+        APP.employees = await idbGetAll('employees');
+        console.log('[Data] Employee saved:', JSON.stringify(rec));
+        showToast('Employee saved.');
+        closeDataModal();
+      } catch (err) {
+        console.log('[Data] Employee save FAILED:', err);
+        showToast('Save failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+      }
     });
   }
   async function deleteEmployee_(id) {
     if (!confirm('Delete this employee?')) return;
-    await idbDelete('employees', id);
-    APP.employees = await idbGetAll('employees');
-    render();
+    try {
+      await idbDelete('employees', id);
+      APP.employees = await idbGetAll('employees');
+      console.log('[Data] Employee deleted:', id);
+      showToast('Employee deleted.');
+      render();
+    } catch (err) {
+      console.log('[Data] Employee delete FAILED:', err);
+      showToast('Delete failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+    }
   }
   function superiorFormModal(existing) {
     var html = '<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet">' +
@@ -1737,18 +2027,248 @@
       var name = document.getElementById('supName').value.trim();
       if (!name) { showToast('Enter a name.'); return; }
       var rec = { id: existing ? existing.id : uid_(), rank: document.getElementById('supRank').value, name: name, subUnit: document.getElementById('supSubUnit').value, isCDO: document.getElementById('supIsCDO').checked };
-      await idbBulkPut('superiors', [rec]);
-      APP.superiors = await idbGetAll('superiors');
-      closeDataModal();
+      try {
+        await idbBulkPut('superiors', [rec]);
+        APP.superiors = await idbGetAll('superiors');
+        console.log('[Data] Superior saved:', JSON.stringify(rec));
+        showToast('Superior saved.');
+        closeDataModal();
+      } catch (err) {
+        console.log('[Data] Superior save FAILED:', err);
+        showToast('Save failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+      }
     });
   }
   async function deleteSuperior_(id) {
     if (!confirm('Delete this superior?')) return;
-    await idbDelete('superiors', id);
-    APP.superiors = await idbGetAll('superiors');
-    render();
+    try {
+      await idbDelete('superiors', id);
+      APP.superiors = await idbGetAll('superiors');
+      console.log('[Data] Superior deleted:', id);
+      showToast('Superior deleted.');
+      render();
+    } catch (err) {
+      console.log('[Data] Superior delete FAILED:', err);
+      showToast('Delete failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+    }
   }
   function closeDataModal() { document.getElementById('modalRoot').innerHTML = ''; render(); }
+
+  /** Explicit SAVE ALL for the roster tabs — re-writes every record currently
+   *  in memory back to IndexedDB. Individual add/edit/delete actions already
+   *  write immediately on their own, but this exists as a deliberate,
+   *  visible confirmation point, and doubles as a retry if an earlier
+   *  individual write ever failed silently. */
+  async function saveRosterData_(kind) {
+    var storeName = kind; // 'subUnits' | 'employees' | 'superiors' — matches both the APP key and the IndexedDB store name
+    var records = APP[storeName];
+    try {
+      await idbBulkPut(storeName, records);
+      console.log('[Data] Saved all ' + storeName + ' (' + records.length + ' record(s)).');
+      showToast('Saved ' + records.length + ' ' + storeName + '.');
+    } catch (err) {
+      console.log('[Data] Save all ' + storeName + ' FAILED:', err);
+      showToast('Save failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+    }
+  }
+
+  // ---------- master.json export / import ----------
+  // Covers roster + configuration data — sub-units, employees, superiors, the
+  // 5 absence-record categories, company name, and time presets — so someone
+  // else can bootstrap their own install with the same setup instead of
+  // re-entering everyone by hand. Deliberately does NOT include day-to-day
+  // attendance, daily CDS/CDO/time picks, or saved parade history — those are
+  // this device's own operational log, not shared setup data.
+  function buildMasterExportJson_() {
+    var payload = {
+      exportedAt: new Date().toISOString(),
+      appVersion: '1.0.5',
+      subUnits: APP.subUnits,
+      employees: APP.employees,
+      superiors: APP.superiors,
+      mcRecords: APP.mcRecords,
+      leaveRecords: APP.leaveRecords,
+      maRecords: APP.maRecords,
+      offRecords: APP.offRecords,
+      otherRecords: APP.otherRecords,
+      companyName: APP.companyName,
+      timePresets: APP.timePresets
+    };
+    return JSON.stringify(payload, null, 2);
+  }
+  /** Exports whatever's currently visible under History's date/AM/PM/Stay-in
+   *  filters — each record's people list sorted by the current sub-unit
+   *  order (see sortPeopleBySubUnitOrder_), not insertion order. */
+  function buildHistoryExportJson_() {
+    var results = getFilteredHistory();
+    var records = results.map(function (h) {
+      var snap = h.snapshot || {};
+      return {
+        date: h.date, session: h.session, label: snap.label, timeLabel: snap.timeLabel,
+        cds: snap.cds, cdo: snap.cdo, total: snap.total, present: snap.present,
+        people: sortPeopleBySubUnitOrder_(snap.people || [])
+      };
+    });
+    return JSON.stringify({ exportedAt: new Date().toISOString(), appVersion: '1.0.6', recordCount: records.length, records: records }, null, 2);
+  }
+  function openHistoryExportJsonModal_() {
+    var text = buildHistoryExportJson_();
+    var html = '<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet">' +
+      '<h3>Export History as JSON</h3><div class="sub">Covers whatever\'s currently filtered above. Copy this, or download it as a file.</div>' +
+      '<textarea class="export-textarea" id="historyJsonTextarea" readonly>' + esc(text) + '</textarea>' +
+      '<button class="btn full" id="copyHistoryJsonBtn" style="margin:10px 0 8px;">COPY TO CLIPBOARD</button>' +
+      '<button class="btn ghost full" id="downloadHistoryJsonBtn" style="margin-bottom:8px;">SHARE / SAVE parade-history.json</button>' +
+      '<button class="modal-close" id="modalClose">CLOSE</button></div></div>';
+    document.getElementById('modalRoot').innerHTML = html;
+    var ta = document.getElementById('historyJsonTextarea');
+    ta.addEventListener('click', function () { ta.select(); });
+    document.getElementById('modalOverlay').addEventListener('click', function (ev) { if (ev.target.id === 'modalOverlay') closeModal(); });
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('copyHistoryJsonBtn').addEventListener('click', function () {
+      ta.select();
+      try { navigator.clipboard.writeText(text); showToast('Copied.'); } catch (err) { document.execCommand('copy'); showToast('Copied.'); }
+    });
+    document.getElementById('downloadHistoryJsonBtn').addEventListener('click', function () {
+      shareOrDownloadJson_('parade-history.json', text);
+    });
+  }
+
+  /** Tries the native share sheet first — a genuine web standard, not a
+   *  Capacitor plugin, so it needs no rebuild and may or may not be exposed
+   *  depending on this WebView's exact setup. Falls back to the classic
+   *  blob+download-link trick, which is known to be unreliable inside a
+   *  native WebView with no way for JS to confirm whether it actually
+   *  worked — so that fallback's toast stays honest about the uncertainty
+   *  rather than confidently claiming a save that may not have happened. */
+  async function shareOrDownloadJson_(filename, text) {
+    try {
+      if (navigator.share && navigator.canShare) {
+        var file = new File([text], filename, { type: 'application/json' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: filename });
+          return;
+        }
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // user cancelled the share sheet — not a failure
+      console.log('[Export] navigator.share failed, falling back:', err);
+    }
+    try {
+      var blob = new Blob([text], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Tried to save ' + filename + ' — if nothing happened, use COPY instead.');
+    } catch (err) {
+      console.log('[Export] ' + filename + ' download failed:', err);
+      showToast('Download not available here — use COPY instead.');
+    }
+  }
+  function openMasterExportModal_() {
+    var text = buildMasterExportJson_();
+    var html = '<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet">' +
+      '<h3>Export master.json</h3><div class="sub">Covers roster &amp; setup data only — not today\'s attendance or saved history. Copy this, or download it as a file, and send it however you like.</div>' +
+      '<textarea class="export-textarea" id="masterExportTextarea" readonly>' + esc(text) + '</textarea>' +
+      '<button class="btn full" id="copyMasterExportBtn" style="margin:10px 0 8px;">COPY TO CLIPBOARD</button>' +
+      '<button class="btn ghost full" id="downloadMasterExportBtn" style="margin-bottom:8px;">SHARE / SAVE master.json</button>' +
+      '<button class="modal-close" id="modalClose">CLOSE</button></div></div>';
+    document.getElementById('modalRoot').innerHTML = html;
+    var ta = document.getElementById('masterExportTextarea');
+    ta.addEventListener('click', function () { ta.select(); });
+    document.getElementById('modalOverlay').addEventListener('click', function (ev) { if (ev.target.id === 'modalOverlay') closeModal(); });
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('copyMasterExportBtn').addEventListener('click', function () {
+      ta.select();
+      try { navigator.clipboard.writeText(text); showToast('Copied.'); } catch (err) { document.execCommand('copy'); showToast('Copied.'); }
+    });
+    document.getElementById('downloadMasterExportBtn').addEventListener('click', function () {
+      shareOrDownloadJson_('master.json', text);
+    });
+  }
+
+  function openMasterImportModal_() {
+    var html = '<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet">' +
+      '<h3>Import master.json</h3>' +
+      '<div class="sub">This REPLACES your current sub-units, employees, superiors, absence records, company name, and time presets. Today\'s attendance and saved history are not affected.</div>' +
+      '<div class="field-row"><label>Choose a file</label><input type="file" id="masterImportFile" accept="application/json,.json"></div>' +
+      '<div class="field-row"><label>...or paste it directly</label><textarea class="export-textarea" id="masterImportTextarea" placeholder="Paste master.json contents here" style="min-height:160px;"></textarea></div>' +
+      '<button class="btn full danger" id="masterImportBtn" style="margin-bottom:8px;">IMPORT (REPLACES CURRENT DATA)</button>' +
+      '<button class="modal-close" id="modalClose">CANCEL</button></div></div>';
+    document.getElementById('modalRoot').innerHTML = html;
+    document.getElementById('modalOverlay').addEventListener('click', function (ev) { if (ev.target.id === 'modalOverlay') closeModal(); });
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+
+    var fileInput = document.getElementById('masterImportFile');
+    var textarea = document.getElementById('masterImportTextarea');
+    fileInput.addEventListener('change', function () {
+      var file = fileInput.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () { textarea.value = reader.result; };
+      reader.onerror = function () { showToast('Could not read that file.'); };
+      reader.readAsText(file);
+    });
+
+    document.getElementById('masterImportBtn').addEventListener('click', function () {
+      var text = (textarea.value || '').trim();
+      if (!text) { showToast('Choose a file or paste master.json contents first.'); return; }
+      if (!confirm('This replaces your current sub-units, employees, superiors, absence records, company name, and time presets. This cannot be undone. Continue?')) return;
+      applyMasterImport_(text);
+    });
+  }
+
+  async function applyMasterImport_(text) {
+    var data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      showToast('That doesn\'t look like valid JSON.');
+      return;
+    }
+    if (!data || typeof data !== 'object') { showToast('Invalid master.json — no data found.'); return; }
+
+    var subUnits = Array.isArray(data.subUnits) ? data.subUnits : [];
+    var employees = Array.isArray(data.employees) ? data.employees : [];
+    var superiors = Array.isArray(data.superiors) ? data.superiors : [];
+    var mcRecords = Array.isArray(data.mcRecords) ? data.mcRecords : [];
+    var leaveRecords = Array.isArray(data.leaveRecords) ? data.leaveRecords : [];
+    var maRecords = Array.isArray(data.maRecords) ? data.maRecords : [];
+    var offRecords = Array.isArray(data.offRecords) ? data.offRecords : [];
+    var otherRecords = Array.isArray(data.otherRecords) ? data.otherRecords : [];
+    var companyName = typeof data.companyName === 'string' ? data.companyName : '';
+    var timePresets = Array.isArray(data.timePresets) ? data.timePresets : [];
+    var allAbsenceRecords = mcRecords.concat(leaveRecords, maRecords, offRecords, otherRecords);
+
+    try {
+      await idbClear('subUnits'); await idbBulkPut('subUnits', subUnits);
+      await idbClear('employees'); await idbBulkPut('employees', employees);
+      await idbClear('superiors'); await idbBulkPut('superiors', superiors);
+      await idbClear('absenceRecords'); await idbBulkPut('absenceRecords', allAbsenceRecords);
+      await idbClear('timePresets'); await idbBulkPut('timePresets', timePresets);
+      await idbBulkPut('settings', [{ key: 'companyName', value: companyName }]);
+
+      APP.subUnits = subUnits;
+      sortSubUnitsByOrder_();
+      APP.employees = employees;
+      APP.superiors = superiors;
+      APP.mcRecords = mcRecords;
+      APP.leaveRecords = leaveRecords;
+      APP.maRecords = maRecords;
+      APP.offRecords = offRecords;
+      APP.otherRecords = otherRecords;
+      APP.companyName = companyName;
+      APP.timePresets = timePresets;
+
+      console.log('[Data] master.json import applied:', subUnits.length, 'sub-units,', employees.length, 'employees,', superiors.length, 'superiors,', allAbsenceRecords.length, 'absence records.');
+      showToast('Import complete — ' + employees.length + ' employees, ' + subUnits.length + ' sub-units loaded.');
+      closeDataModal();
+    } catch (err) {
+      console.log('[Data] master.json import FAILED:', err);
+      showToast('Import failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+    }
+  }
 
   // ---------- Bulk add ----------
   function subUnitOptions(selected) {
@@ -1828,6 +2348,11 @@
   }
 
   function bindUpdateDataEvents() {
+    var exportBtn = document.getElementById('btnMasterExport');
+    if (exportBtn) exportBtn.addEventListener('click', openMasterExportModal_);
+    var importBtn = document.getElementById('btnMasterImport');
+    if (importBtn) importBtn.addEventListener('click', openMasterImportModal_);
+
     document.querySelectorAll('[data-datatab]').forEach(function (b) {
       b.addEventListener('click', function () {
         dataSubTab = b.getAttribute('data-datatab');
@@ -1837,11 +2362,16 @@
         render();
       });
     });
+    var saveRosterBtn = document.querySelector('[data-save-roster]');
+    if (saveRosterBtn) saveRosterBtn.addEventListener('click', function () { saveRosterData_(saveRosterBtn.getAttribute('data-save-roster')); });
+    document.querySelectorAll('[data-emp-subfilter]').forEach(function (c) { c.addEventListener('click', function () { employeeSubFilter = c.getAttribute('data-emp-subfilter'); render(); }); });
+    document.querySelectorAll('[data-sup-subfilter]').forEach(function (c) { c.addEventListener('click', function () { superiorSubFilter = c.getAttribute('data-sup-subfilter'); render(); }); });
     var addSU = document.getElementById('btnAddSubUnit'); if (addSU) addSU.addEventListener('click', function () { subUnitFormModal(null); });
     var addE = document.getElementById('btnAddEmployee'); if (addE) addE.addEventListener('click', function () { employeeFormModal(null); });
     var addS = document.getElementById('btnAddSuperior'); if (addS) addS.addEventListener('click', function () { superiorFormModal(null); });
     var bulkAddE = document.getElementById('btnBulkAddEmployee'); if (bulkAddE) bulkAddE.addEventListener('click', function () { openBulkModal('employee'); });
     var bulkAddS = document.getElementById('btnBulkAddSuperior'); if (bulkAddS) bulkAddS.addEventListener('click', function () { openBulkModal('superior'); });
+    document.querySelectorAll('[data-move-subunit]').forEach(function (r) { r.addEventListener('click', function () { moveSubUnit_(r.getAttribute('data-move-subunit'), parseInt(r.getAttribute('data-dir'), 10)); }); });
     document.querySelectorAll('[data-edit-subunit-btn]').forEach(function (r) { r.addEventListener('click', function () { subUnitFormModal(APP.subUnits.filter(function (s) { return s.id === r.getAttribute('data-edit-subunit-btn'); })[0]); }); });
     document.querySelectorAll('[data-del-subunit-btn]').forEach(function (r) { r.addEventListener('click', function () { deleteSubUnit_(r.getAttribute('data-del-subunit-btn')); }); });
     document.querySelectorAll('[data-edit-employee-btn]').forEach(function (r) { r.addEventListener('click', function () { employeeFormModal(APP.employees.filter(function (e) { return e.id === r.getAttribute('data-edit-employee-btn'); })[0]); }); });
@@ -1965,6 +2495,7 @@
       '<label class="check-label"><input type="checkbox" id="histFilterAM" ' + (historyShowAM ? 'checked' : '') + '> AM PARADE</label>' +
       '<label class="check-label"><input type="checkbox" id="histFilterPM" ' + (historyShowPM ? 'checked' : '') + '> PM PARADE</label>' +
       '<label class="check-label"><input type="checkbox" id="histFilterStayIn" ' + (historyShowStayIn ? 'checked' : '') + '> STAY-IN</label></div>';
+    html += '<button class="btn ghost full" id="btnHistoryExportJson" style="margin-bottom:12px;">EXPORT (currently filtered) AS JSON</button>';
     html += '<div id="historyResults">' + historyResultsHtml_() + '</div>';
     return html;
   }
@@ -1984,6 +2515,9 @@
     });
   }
   function bindHistoryEvents() {
+    var exportJsonBtn = document.getElementById('btnHistoryExportJson');
+    if (exportJsonBtn) exportJsonBtn.addEventListener('click', openHistoryExportJsonModal_);
+
     var dateInput = document.getElementById('historyDateFilter');
     if (dateInput) dateInput.addEventListener('change', function () {
       // Targeted update only — re-rendering the whole page here would destroy
@@ -2007,7 +2541,80 @@
     historyViewFilter = 'ALL'; historyViewSubFilter = 'ALL';
     render();
   }
-  function closeHistoryView() { historyViewKey = null; render(); }
+  function closeHistoryView() { historyViewKey = null; historyViewEditMode = false; historyViewDirty = false; render(); }
+  /** Simplified reason picker for editing an already-saved history record —
+   *  operates directly on the detached historyViewPeople array, not on live
+   *  APP.attendance, since this snapshot is frozen and separate from today. */
+  function openHistoryEditPersonModal_(personId) {
+    var p = historyViewPeople.filter(function (x) { return x.id === personId; })[0];
+    if (!p) return;
+    var plainReasons = DEFAULT_REASONS.map(function (r) { return r[0]; });
+    var html = '<div class="modal-overlay" id="modalOverlay"><div class="modal-sheet">' +
+      '<h3>' + esc(p.rank) + ' ' + esc(p.name) + '</h3><div class="sub">Currently: ' + esc(p.reason || BUCKET_LABEL[p.bucket] || p.bucket) + '</div>' +
+      '<div class="reason-grid">' + plainReasons.map(function (r) {
+        return '<button class="reason-btn" data-histedit-reason="' + esc(r) + '">' + esc(r) + '</button>';
+      }).join('') + '</div>' +
+      '<div class="field-row-2" style="margin:10px 0 8px;">' +
+      '<button class="btn ghost" id="histEditMarkIn" style="flex:1;">MARK IN</button>' +
+      '<button class="btn ghost" id="histEditMarkOut" style="flex:1;">MARK OUT</button></div>' +
+      '<button class="modal-close" id="modalClose">CANCEL</button></div></div>';
+    document.getElementById('modalRoot').innerHTML = html;
+    document.getElementById('modalOverlay').addEventListener('click', function (ev) { if (ev.target.id === 'modalOverlay') closeModal(); });
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('histEditMarkIn').addEventListener('click', function () { applyHistoryEdit_(personId, '__IN__'); closeModal(); });
+    document.getElementById('histEditMarkOut').addEventListener('click', function () { applyHistoryEdit_(personId, ''); closeModal(); });
+    document.querySelectorAll('[data-histedit-reason]').forEach(function (btn) {
+      btn.addEventListener('click', function () { applyHistoryEdit_(personId, btn.getAttribute('data-histedit-reason')); closeModal(); });
+    });
+  }
+  function applyHistoryEdit_(personId, reasonText) {
+    var p = historyViewPeople.filter(function (x) { return x.id === personId; })[0];
+    if (!p) return;
+    if (reasonText === '__IN__') { p.bucket = 'In'; p.reason = ''; }
+    else if (!reasonText) { p.bucket = 'Out'; p.reason = ''; }
+    else { p.bucket = bucketForReasonLocal(reasonText); p.reason = reasonText; }
+    historyViewDirty = true;
+    render();
+  }
+  async function saveHistoryViewEdits_() {
+    var cdsInput = document.getElementById('histEditCds');
+    var cdoInput = document.getElementById('histEditCdo');
+    if (cdsInput) historyViewMeta.cds = cdsInput.value.trim();
+    if (cdoInput) historyViewMeta.cdo = cdoInput.value.trim();
+    var h = historyList.filter(function (x) { return x.key === historyViewKey; })[0];
+    if (!h) return;
+    h.snapshot.people = historyViewPeople;
+    h.snapshot.cds = historyViewMeta.cds;
+    h.snapshot.cdo = historyViewMeta.cdo;
+    h.snapshot.present = historyViewPeople.filter(function (p) { return p.bucket === 'In'; }).length;
+    h.snapshot.total = historyViewPeople.length;
+    h.savedAt = new Date().toISOString();
+    try {
+      await idbBulkPut('paradeHistory', [h]);
+      historyViewDirty = false;
+      historyViewEditMode = false;
+      console.log('[History] Record updated:', historyViewKey);
+      showToast('History record updated.');
+      render();
+    } catch (err) {
+      console.log('[History] Save edits FAILED:', err);
+      showToast('Save failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+    }
+  }
+  async function deleteHistoryRecord_(key) {
+    if (!confirm('Delete this saved record? This cannot be undone.')) return;
+    try {
+      await idbDelete('paradeHistory', key);
+      var idx = historyList.findIndex(function (h) { return h.key === key; });
+      if (idx >= 0) historyList.splice(idx, 1);
+      console.log('[History] Record deleted:', key);
+      showToast('Record deleted.');
+      closeHistoryView();
+    } catch (err) {
+      console.log('[History] Delete FAILED:', err);
+      showToast('Delete failed — ' + (err && err.message ? err.message : 'see Logcat/Console.'));
+    }
+  }
   function matchesHistoryViewFilter(bucket) {
     if (historyViewFilter === 'ALL') return true;
     if (historyViewFilter === 'OUT') return bucket !== 'In';
@@ -2018,7 +2625,8 @@
     var cls = BUCKET_CLASS[p.bucket] || 'out';
     var label = p.reason || BUCKET_LABEL[p.bucket] || p.bucket;
     var sub = historyViewMeta.session === 'STAYIN' ? label : historyViewMeta.session + ' · ' + label;
-    return '<div class="emprow ' + cls + ' readonly"><div class="name"><span class="rank">' + esc(p.rank) + '</span>' + esc(p.name) + '</div><div class="substatus">' + esc(sub) + '</div></div>';
+    var editAttr = historyViewEditMode ? ' data-histedit="' + esc(p.id) + '"' : '';
+    return '<div class="emprow ' + cls + (historyViewEditMode ? '' : ' readonly') + '"' + editAttr + '><div class="name"><span class="rank">' + esc(p.rank) + '</span>' + esc(p.name) + '</div><div class="substatus">' + esc(sub) + '</div></div>';
   }
   function historyViewFlatListHtml() {
     var rows = historyViewPeople.map(function (p) { if (!matchesHistoryViewFilter(p.bucket)) return ''; return historyViewRowHtml(p); }).join('');
@@ -2027,6 +2635,7 @@
   function historyViewGroupsHtml() {
     var groups = [];
     historyViewPeople.forEach(function (p) { if (p.subUnit && groups.indexOf(p.subUnit) === -1) groups.push(p.subUnit); });
+    groups = sortGroupNamesBySubUnitOrder_(groups);
     var html = '', any = false;
     groups.forEach(function (g) {
       if (historyViewSubFilter !== 'ALL' && g !== historyViewSubFilter) return;
@@ -2046,7 +2655,11 @@
     var html = '<button class="back-link" id="btnHistoryViewBack">‹ BACK TO HISTORY</button>';
     var title = isStayIn ? 'STAY-IN STRENGTH' : (meta.session === 'AM' ? 'AM PARADE' : 'PM PARADE');
     html += '<div class="segmented"><div class="seg-btn active" style="flex:1;cursor:default;">' + title + ' <span class="count">' + total + '</span></div></div>';
-    html += '<div class="export-row"><button class="btn ghost full" id="btnHistoryExport">EXPORT</button></div>';
+    html += '<div class="field-row-2" style="margin-bottom:10px;">' +
+      '<button class="btn ghost" id="btnHistoryExport" style="flex:1;">EXPORT</button>' +
+      '<button class="btn ghost" id="btnHistoryEditToggle" style="flex:1;">' + (historyViewEditMode ? 'DONE EDITING' : 'EDIT') + '</button>' +
+      '<button class="btn danger" id="btnHistoryDelete" style="flex:1;">DELETE</button></div>';
+    if (historyViewEditMode) html += '<div class="banner">Tap anyone below to change their recorded status. Don\'t forget to save when done.</div>';
     html += '<div class="statgrid">' + statCard('in', counts.In, 'IN') + statCard('out', total - counts.In, 'OUT') + statCard('onduty', counts.OnDuty, 'ON DUTY') + statCard('leave', counts.Leave, 'LEAVES') + statCard('mc', counts.MC, 'MC') + statCard('total', total, 'TOTAL') + '</div>';
     html += '<div class="sectionhead"><h2>' + esc(isStayIn ? 'STAY-IN STRENGTH' : 'PARADE STATE') + ' · ' + esc(formatHistDate(meta.date)) + '</h2></div>';
     if (!isStayIn) {
@@ -2054,13 +2667,14 @@
       html += '<div class="chiprow"><button class="chip ' + (historyViewSubFilter === 'ALL' ? 'active' : '') + '" data-histview-subfilter="ALL">ALL SUB-UNITS</button>' +
         subUnitsInSnap.map(function (n) { return '<button class="chip ' + (historyViewSubFilter === n ? 'active' : '') + '" data-histview-subfilter="' + esc(n) + '">' + esc(n) + '</button>'; }).join('') + '</div>';
     }
-    html += '<div class="selector-row"><label>CDS</label><div class="selector-static">' + esc(meta.cds || '—') + '</div></div>';
-    if (!isStayIn) html += '<div class="selector-row"><label>CDO</label><div class="selector-static">' + esc(meta.cdo || '—') + '</div></div>';
+    html += '<div class="selector-row"><label>CDS</label>' + (historyViewEditMode ? '<input type="text" id="histEditCds" value="' + esc(meta.cds || '') + '" style="flex:1;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px;">' : '<div class="selector-static">' + esc(meta.cds || '—') + '</div>') + '</div>';
+    if (!isStayIn) html += '<div class="selector-row"><label>CDO</label>' + (historyViewEditMode ? '<input type="text" id="histEditCdo" value="' + esc(meta.cdo || '') + '" style="flex:1;background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px;">' : '<div class="selector-static">' + esc(meta.cdo || '—') + '</div>') + '</div>';
     html += '<div class="chiprow">' + ['ALL', 'IN', 'OUT', 'ONDUTY', 'LEAVE', 'MC'].map(function (k) {
       var labels = { ALL: 'ALL', IN: 'IN', OUT: 'OUT', ONDUTY: 'ON DUTY', LEAVE: 'LEAVES', MC: 'MC' };
       return '<button class="chip ' + (historyViewFilter === k ? 'active' : '') + '" data-histview-filter="' + k + '">' + labels[k] + '</button>';
     }).join('') + '</div>';
     html += '<div>' + (isStayIn ? historyViewFlatListHtml() : historyViewGroupsHtml()) + '</div>';
+    if (historyViewEditMode && historyViewDirty) html += '<button class="btn full savebtn dirty" id="btnHistorySaveEdits" style="margin-top:12px;">SAVE CHANGES</button>';
     return html;
   }
   function bindHistoryViewEvents() {
@@ -2068,6 +2682,19 @@
     var exportBtn = document.getElementById('btnHistoryExport');
     if (exportBtn) exportBtn.addEventListener('click', function () {
       openExportModal({ label: historyViewMeta.session === 'AM' ? 'FP' : 'LP', dateIso: historyViewMeta.date, session: historyViewMeta.session, timeLabel: historyViewMeta.timeLabel, cds: historyViewMeta.cds, cdo: historyViewMeta.cdo, people: historyViewPeople });
+    });
+    var editToggleBtn = document.getElementById('btnHistoryEditToggle');
+    if (editToggleBtn) editToggleBtn.addEventListener('click', function () {
+      if (historyViewEditMode && historyViewDirty) { if (!confirm('Discard unsaved changes?')) return; historyViewDirty = false; }
+      historyViewEditMode = !historyViewEditMode;
+      render();
+    });
+    var deleteBtn = document.getElementById('btnHistoryDelete');
+    if (deleteBtn) deleteBtn.addEventListener('click', function () { deleteHistoryRecord_(historyViewKey); });
+    var saveEditsBtn = document.getElementById('btnHistorySaveEdits');
+    if (saveEditsBtn) saveEditsBtn.addEventListener('click', saveHistoryViewEdits_);
+    document.querySelectorAll('[data-histedit]').forEach(function (row) {
+      row.addEventListener('click', function () { openHistoryEditPersonModal_(row.getAttribute('data-histedit')); });
     });
     document.querySelectorAll('[data-histview-filter]').forEach(function (c) { c.addEventListener('click', function () { historyViewFilter = c.getAttribute('data-histview-filter'); render(); }); });
     document.querySelectorAll('[data-histview-subfilter]').forEach(function (c) { c.addEventListener('click', function () { historyViewSubFilter = c.getAttribute('data-histview-subfilter'); render(); }); });
@@ -2140,7 +2767,11 @@
         var pendingUpdate = null;
 
         console.log('[OTA] Updater plugin detected — initializing.');
-        showToast('OTA updater active.');
+        (Preferences ? Preferences.get({ key: VERSION_KEY }) : Promise.resolve(null)).then(function (res) {
+          var current = (res && res.value) || '(none yet — first launch)';
+          console.log('[OTA] Current applied version at this boot:', current);
+          showToast('App version: ' + current);
+        });
 
         Updater.notifyAppReady()
           .then(function () { console.log('[OTA] notifyAppReady OK.'); })
@@ -2160,12 +2791,12 @@
                 var current = (res && res.value) || '0.0.0';
                 console.log('[OTA] Installed version:', current, '| Manifest version:', manifest.version);
                 if (manifest.version && manifest.version !== current) {
-                  showToast('Update found (v' + manifest.version + ') — downloading...');
+                  showToast('Downloading latest version (v' + manifest.version + ')...');
                   return Updater.download({ version: manifest.version, url: manifest.url })
                     .then(function (data) {
                       console.log('[OTA] Download OK:', JSON.stringify(data));
                       pendingUpdate = { data: data, version: manifest.version };
-                      showToast('v' + manifest.version + ' downloaded — will apply when app is backgrounded.');
+                      showToast('Latest version downloaded (v' + manifest.version + ') — will finish applying once you leave the app.');
                     })
                     .catch(function (err) {
                       console.log('[OTA] Download FAILED:', err);
@@ -2173,7 +2804,7 @@
                     });
                 } else {
                   console.log('[OTA] Already on latest version — nothing to do.');
-                  showToast('Already on latest version (' + current + ').');
+                  showToast('App fully up to date (v' + current + ').');
                 }
               });
             })
